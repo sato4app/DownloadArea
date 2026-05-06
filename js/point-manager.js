@@ -106,9 +106,9 @@ export class PointManager {
             radius: CONFIG.POINT_MARKER_RADIUS,
             fillColor: CONFIG.POINT_MARKER_COLOR,
             color: CONFIG.POINT_MARKER_COLOR,
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.6,
+            weight: CONFIG.POINT_MARKER_WEIGHT,
+            opacity: CONFIG.POINT_MARKER_OPACITY,
+            fillOpacity: CONFIG.POINT_MARKER_FILL_OPACITY,
             draggable: false
         }).addTo(this.mapManager.getMap());
 
@@ -140,7 +140,7 @@ export class PointManager {
         marker.bindTooltip(point.id, {
             permanent: false,
             direction: 'top',
-            offset: [0, -10]
+            offset: CONFIG.POINT_TOOLTIP_OFFSET
         });
     }
 
@@ -166,7 +166,9 @@ export class PointManager {
         // すべての処理が完了してからポイントIDフィールドをフォーカス・全選択
         setTimeout(() => {
             const pointIdField = document.getElementById('pointIdField');
-            if (pointIdField && point.id.match(/^仮\d{2}$/)) {
+            const { PREFIX, PAD_WIDTH } = CONFIG.TEMPORARY_ID;
+            const tempIdPattern = new RegExp(`^${PREFIX}\\d{${PAD_WIDTH}}$`);
+            if (pointIdField && tempIdPattern.test(point.id)) {
                 pointIdField.focus();
                 pointIdField.select();
 
@@ -327,10 +329,11 @@ export class PointManager {
     // ポイント情報表示を更新
     updatePointInfoDisplay(point, isNewPoint = false) {
         const pointIdField = document.getElementById('pointIdField');
+        const digits = CONFIG.COORDINATE_DECIMAL_DIGITS;
         pointIdField.value = point.id;
-        document.getElementById('latDecimalField').value = point.lat.toFixed(5);
-        document.getElementById('lngDecimalField').value = point.lng.toFixed(5);
-        document.getElementById('dmsField').value = 
+        document.getElementById('latDecimalField').value = point.lat.toFixed(digits);
+        document.getElementById('lngDecimalField').value = point.lng.toFixed(digits);
+        document.getElementById('dmsField').value =
             this.formatDMSCoordinates(point.lng, point.lat);
         document.getElementById('elevationField').value = point.elevation;
         document.getElementById('locationField').value = point.location;
@@ -339,8 +342,9 @@ export class PointManager {
 
     // ドラッグ中のリアルタイム座標更新（緯度・経度・DMSのみ）
     updateCoordinateFieldsRealtime(lat, lng) {
-        document.getElementById('latDecimalField').value = lat.toFixed(5);
-        document.getElementById('lngDecimalField').value = lng.toFixed(5);
+        const digits = CONFIG.COORDINATE_DECIMAL_DIGITS;
+        document.getElementById('latDecimalField').value = lat.toFixed(digits);
+        document.getElementById('lngDecimalField').value = lng.toFixed(digits);
         document.getElementById('dmsField').value = this.formatDMSCoordinates(lng, lat);
     }
 

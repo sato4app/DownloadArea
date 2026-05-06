@@ -121,7 +121,7 @@ class PointGPSApp {
                 }
             } catch (error) {
                 console.error('ファイル出力エラー:', error);
-                this.showError('ファイル出力中にエラーが発生しました');
+                this.showError(CONFIG.MESSAGES.DOWNLOAD_AREA_EXPORT_ERROR);
             }
         });
 

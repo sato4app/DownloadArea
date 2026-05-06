@@ -1,14 +1,9 @@
 // Download領域の可視化およびタイル/GeoJSONファイル生成
-// - 各ポイントを中心に半径200m(z=18)と500m(z=17)の円を地図に描画
+// - 各ポイントを中心に半径(z=17/z=18)の円を地図に描画
 // - 「Download領域の指定ファイルを出力」で tile_buffers.geojson と tile_manifest.json を出力
+import { CONFIG } from './config.js';
 
-const Z17 = 17;
-const Z18 = 18;
-const BUFFER_M_Z17 = 500;
-const BUFFER_M_Z18 = 200;
-const CIRCLE_VERTICES = 64;
-const EARTH_RADIUS_M = 6378137;
-const EXCLUDE_CATEGORY = 'Download領域の算出から除外';
+const DA = CONFIG.DOWNLOAD_AREA;
 
 export class DownloadAreaManager {
     constructor(mapManager, gpsDataManager) {
@@ -20,7 +15,7 @@ export class DownloadAreaManager {
     // 「Download領域の算出から除外」以外のポイントを返す
     getEligiblePoints() {
         return this.gpsDataManager.getAllPoints()
-            .filter(p => p.category !== EXCLUDE_CATEGORY);
+            .filter(p => p.category !== CONFIG.CATEGORIES.EXCLUDED);
     }
 
     // 円の表示を更新
@@ -29,38 +24,30 @@ export class DownloadAreaManager {
         const points = this.getEligiblePoints();
 
         for (const p of points) {
-            // z=17 = 500m (青)
+            // z=17 バッファ
             L.circle([p.lat, p.lng], {
-                radius: BUFFER_M_Z17,
-                color: '#1d4ed8',
-                weight: 1,
-                fillColor: '#3b82f6',
-                fillOpacity: 0.10,
-                interactive: false
+                radius: DA.BUFFER_M_Z17,
+                ...CONFIG.BUFFER_CIRCLE_Z17_STYLE
             }).addTo(this.bufferLayer);
 
-            // z=18 = 200m (緑)
+            // z=18 バッファ
             L.circle([p.lat, p.lng], {
-                radius: BUFFER_M_Z18,
-                color: '#16a34a',
-                weight: 1,
-                fillColor: '#22c55e',
-                fillOpacity: 0.20,
-                interactive: false
+                radius: DA.BUFFER_M_Z18,
+                ...CONFIG.BUFFER_CIRCLE_Z18_STYLE
             }).addTo(this.bufferLayer);
         }
     }
 
     // 円のポリゴン近似（[lng, lat] の配列、最後の点で閉じる）
-    circlePolygon(lat, lng, radiusM, vertices = CIRCLE_VERTICES) {
+    circlePolygon(lat, lng, radiusM, vertices = DA.CIRCLE_VERTICES) {
         const coords = [];
         const latRad = lat * Math.PI / 180;
         for (let i = 0; i < vertices; i++) {
             const angle = (i / vertices) * 2 * Math.PI;
             const dx = radiusM * Math.cos(angle);
             const dy = radiusM * Math.sin(angle);
-            const dLat = (dy / EARTH_RADIUS_M) * 180 / Math.PI;
-            const dLng = (dx / (EARTH_RADIUS_M * Math.cos(latRad))) * 180 / Math.PI;
+            const dLat = (dy / DA.EARTH_RADIUS_M) * 180 / Math.PI;
+            const dLng = (dx / (DA.EARTH_RADIUS_M * Math.cos(latRad))) * 180 / Math.PI;
             coords.push([lng + dLng, lat + dLat]);
         }
         coords.push(coords[0]);
@@ -74,27 +61,27 @@ export class DownloadAreaManager {
         for (const p of points) {
             features.push({
                 type: 'Feature',
-                properties: { layer: 'z17_default', buffer_m: BUFFER_M_Z17 },
+                properties: { layer: DA.LAYER_KEY_Z17, buffer_m: DA.BUFFER_M_Z17 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [this.circlePolygon(p.lat, p.lng, BUFFER_M_Z17)]
+                    coordinates: [this.circlePolygon(p.lat, p.lng, DA.BUFFER_M_Z17)]
                 }
             });
             features.push({
                 type: 'Feature',
-                properties: { layer: 'z18_optional', buffer_m: BUFFER_M_Z18 },
+                properties: { layer: DA.LAYER_KEY_Z18, buffer_m: DA.BUFFER_M_Z18 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [this.circlePolygon(p.lat, p.lng, BUFFER_M_Z18)]
+                    coordinates: [this.circlePolygon(p.lat, p.lng, DA.BUFFER_M_Z18)]
                 }
             });
         }
         return {
             type: 'FeatureCollection',
             metadata: {
-                version: 1,
-                z17_layer: { buffer_m: BUFFER_M_Z17, max_zoom: 17, min_zoom: 13 },
-                z18_layer: { buffer_m: BUFFER_M_Z18, max_zoom: 18, min_zoom: 18 }
+                version: DA.MANIFEST_VERSION,
+                z17_layer: { buffer_m: DA.BUFFER_M_Z17, max_zoom: DA.Z17_MAX_ZOOM, min_zoom: DA.Z17_MIN_ZOOM },
+                z18_layer: { buffer_m: DA.BUFFER_M_Z18, max_zoom: DA.Z18_MAX_ZOOM, min_zoom: DA.Z18_MIN_ZOOM }
             },
             features
         };
@@ -129,7 +116,7 @@ export class DownloadAreaManager {
         const dλ = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dφ / 2) ** 2 +
                   Math.cos(φ1) * Math.cos(φ2) * Math.sin(dλ / 2) ** 2;
-        return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(a));
+        return 2 * DA.EARTH_RADIUS_M * Math.asin(Math.sqrt(a));
     }
 
     // 円とタイルbboxの交差判定（最近接点をクランプで求めて距離評価）
@@ -143,8 +130,8 @@ export class DownloadAreaManager {
     // 1点について該当タイルを列挙
     tilesForPoint(lat, lon, radiusM, z) {
         const latRad = lat * Math.PI / 180;
-        const dLat = (radiusM / EARTH_RADIUS_M) * 180 / Math.PI;
-        const dLon = (radiusM / (EARTH_RADIUS_M * Math.cos(latRad))) * 180 / Math.PI;
+        const dLat = (radiusM / DA.EARTH_RADIUS_M) * 180 / Math.PI;
+        const dLon = (radiusM / (DA.EARTH_RADIUS_M * Math.cos(latRad))) * 180 / Math.PI;
 
         const [x1] = this.lonLatToTile(lon - dLon, lat, z);
         const [x2] = this.lonLatToTile(lon + dLon, lat, z);
@@ -170,10 +157,10 @@ export class DownloadAreaManager {
         const z18Set = new Set();
 
         for (const p of points) {
-            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, BUFFER_M_Z17, Z17)) {
+            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, DA.BUFFER_M_Z17, DA.Z17)) {
                 z17Set.add(`${x},${y}`);
             }
-            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, BUFFER_M_Z18, Z18)) {
+            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, DA.BUFFER_M_Z18, DA.Z18)) {
                 z18Set.add(`${x},${y}`);
             }
         }
@@ -183,18 +170,18 @@ export class DownloadAreaManager {
             .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
         return {
-            version: 1,
-            source: 'download-area-edited',
+            version: DA.MANIFEST_VERSION,
+            source: DA.MANIFEST_SOURCE,
             layers: {
-                z17_default: {
-                    z: Z17,
-                    buffer_m: BUFFER_M_Z17,
+                [DA.LAYER_KEY_Z17]: {
+                    z: DA.Z17,
+                    buffer_m: DA.BUFFER_M_Z17,
                     tile_count: z17Set.size,
                     tiles: tilesFromSet(z17Set)
                 },
-                z18_optional: {
-                    z: Z18,
-                    buffer_m: BUFFER_M_Z18,
+                [DA.LAYER_KEY_Z18]: {
+                    z: DA.Z18,
+                    buffer_m: DA.BUFFER_M_Z18,
                     tile_count: z18Set.size,
                     tiles: tilesFromSet(z18Set)
                 }
@@ -206,20 +193,20 @@ export class DownloadAreaManager {
     exportFiles() {
         const points = this.getEligiblePoints();
         if (points.length === 0) {
-            return { success: false, error: '出力対象のポイントがありません' };
+            return { success: false, error: CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY };
         }
 
         const geojson = this.generateTileBuffersGeoJSON();
         const manifest = this.generateTileManifest();
 
-        this.downloadJSON(geojson, 'tile_buffers.geojson');
-        this.downloadJSON(manifest, 'tile_manifest.json');
+        this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
+        this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
 
         return {
             success: true,
             pointCount: points.length,
-            z17Count: manifest.layers.z17_default.tile_count,
-            z18Count: manifest.layers.z18_optional.tile_count
+            z17Count: manifest.layers[DA.LAYER_KEY_Z17].tile_count,
+            z18Count: manifest.layers[DA.LAYER_KEY_Z18].tile_count
         };
     }
 

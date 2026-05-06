@@ -35,26 +35,24 @@ export class GPSDataManager {
         }
 
         const headerRow = jsonData[0];
-        
+
         // ヘッダー行から列のインデックスを特定
         const columnIndexes = this.identifyColumns(headerRow);
-        
+
         // 必須項目（ポイントID、名称、緯度、経度）がすべて存在するかチェック
         const requiredColumns = ['id', 'location', 'lat', 'lng'];
-        const missingColumns = requiredColumns.filter(col => 
+        const missingColumns = requiredColumns.filter(col =>
             columnIndexes[col] === undefined || columnIndexes[col] === null
         );
-        
+
         if (missingColumns.length > 0) {
-            const missingNames = missingColumns.map(col => {
-                switch(col) {
-                    case 'id': return 'ポイントID';
-                    case 'location': return '名称';
-                    case 'lat': return '緯度';
-                    case 'lng': return '経度';
-                    default: return col;
-                }
-            });
+            const headerMap = {
+                id: CONFIG.EXCEL_HEADERS.ID,
+                location: CONFIG.EXCEL_HEADERS.LOCATION,
+                lat: CONFIG.EXCEL_HEADERS.LAT,
+                lng: CONFIG.EXCEL_HEADERS.LNG
+            };
+            const missingNames = missingColumns.map(col => headerMap[col] || col);
             throw new Error(`必須項目が不足しています: ${missingNames.join(', ')}`);
         }
         
@@ -92,7 +90,7 @@ export class GPSDataManager {
                 lng: lng,
                 elevation: DataUtils.normalizeElevation(DataUtils.getCellValue(row, columnIndexes.elevation)),
                 location: locationValue,
-                category: 'ポイントGPS'
+                category: CONFIG.CATEGORIES.GPS
             };
 
             this.gpsPoints.push(point);
@@ -102,24 +100,25 @@ export class GPSDataManager {
     // ヘッダー行から各列のインデックスを特定（完全一致）
     identifyColumns(headerRow) {
         const indexes = {};
+        const H = CONFIG.EXCEL_HEADERS;
 
         for (let i = 0; i < headerRow.length; i++) {
             const header = String(headerRow[i]).trim();
 
             // 完全一致判定
-            if (header === 'ポイントID') {
+            if (header === H.ID) {
                 indexes.id = i;
             }
-            else if (header === '名称') {
+            else if (header === H.LOCATION) {
                 indexes.location = i;
             }
-            else if (header === '緯度') {
+            else if (header === H.LAT) {
                 indexes.lat = i;
             }
-            else if (header === '経度') {
+            else if (header === H.LNG) {
                 indexes.lng = i;
             }
-            else if (header === '標高') {
+            else if (header === H.ELEVATION) {
                 indexes.elevation = i;
             }
         }
@@ -137,7 +136,7 @@ export class GPSDataManager {
             lng: lng,
             elevation: DataUtils.normalizeElevation(elevation),
             location: location,
-            category: '追加ポイント'
+            category: CONFIG.CATEGORIES.ADDED
         };
 
         this.gpsPoints.push(point);
@@ -172,12 +171,14 @@ export class GPSDataManager {
     
     // 仮IDを生成（仮01から始まる連番）
     generateTemporaryId() {
+        const { PREFIX, PAD_WIDTH } = CONFIG.TEMPORARY_ID;
+        const idPattern = new RegExp(`^${PREFIX}\\d{${PAD_WIDTH}}$`);
         const existingTempIds = this.gpsPoints
             .map(p => p.id)
-            .filter(id => id.match(/^仮\d{2}$/))
-            .map(id => parseInt(id.substring(1)))
+            .filter(id => idPattern.test(id))
+            .map(id => parseInt(id.substring(PREFIX.length)))
             .sort((a, b) => a - b);
-        
+
         let nextNum = 1;
         for (const num of existingTempIds) {
             if (num === nextNum) {
@@ -186,8 +187,8 @@ export class GPSDataManager {
                 break;
             }
         }
-        
-        return `仮${nextNum.toString().padStart(2, '0')}`;
+
+        return `${PREFIX}${nextNum.toString().padStart(PAD_WIDTH, '0')}`;
     }
 
     // ポイントを更新
