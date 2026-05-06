@@ -83,7 +83,11 @@ export const CONFIG = {
 
         // 出力ファイル名
         GEOJSON_FILENAME: 'tile_buffers.geojson',
-        MANIFEST_FILENAME: 'tile_manifest.json'
+        MANIFEST_FILENAME: 'tile_manifest.json',
+
+        // タイル統計表示用
+        STAT_ZOOM_LEVELS: [10, 11, 12, 13, 14, 15, 16, 17, 18],
+        AVG_TILE_KB: 12 // 1タイルあたりの平均容量（地理院 std タイル経験値）
     },
 
     // 円バッファ表示スタイル

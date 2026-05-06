@@ -36,6 +36,50 @@ export class DownloadAreaManager {
                 ...CONFIG.BUFFER_CIRCLE_Z18_STYLE
             }).addTo(this.bufferLayer);
         }
+
+        this.updateTileStatsDisplay();
+    }
+
+    // ズーム別タイル統計を計算（[{ z, count, sizeMB }, ...]）
+    calculateTileStats() {
+        const points = this.getEligiblePoints();
+        const stats = [];
+
+        for (const z of DA.STAT_ZOOM_LEVELS) {
+            const radius = (z === DA.Z18) ? DA.BUFFER_M_Z18 : DA.BUFFER_M_Z17;
+            const tileSet = new Set();
+            for (const p of points) {
+                for (const [x, y] of this.tilesForPoint(p.lat, p.lng, radius, z)) {
+                    tileSet.add(`${x},${y}`);
+                }
+            }
+            const count = tileSet.size;
+            const sizeMB = count * DA.AVG_TILE_KB / 1024;
+            stats.push({ z, count, sizeMB });
+        }
+
+        return stats;
+    }
+
+    // 統計表示欄を更新
+    updateTileStatsDisplay() {
+        const stats = this.calculateTileStats();
+        let totalCount = 0;
+        let totalSizeMB = 0;
+
+        for (const s of stats) {
+            const countEl = document.getElementById(`tileCountZ${s.z}`);
+            const sizeEl = document.getElementById(`tileSizeZ${s.z}`);
+            if (countEl) countEl.value = s.count.toLocaleString();
+            if (sizeEl) sizeEl.value = s.sizeMB.toFixed(1);
+            totalCount += s.count;
+            totalSizeMB += s.sizeMB;
+        }
+
+        const totalCountEl = document.getElementById('tileCountTotal');
+        const totalSizeEl = document.getElementById('tileSizeTotal');
+        if (totalCountEl) totalCountEl.value = totalCount.toLocaleString();
+        if (totalSizeEl) totalSizeEl.value = totalSizeMB.toFixed(1);
     }
 
     // 円のポリゴン近似（[lng, lat] の配列、最後の点で閉じる）

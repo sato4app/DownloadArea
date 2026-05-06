@@ -188,6 +188,95 @@ body {
     white-space: nowrap;
 }
 
+/* ズーム別タイル統計 */
+.tile-stats-container {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background-color: rgba(236, 240, 241, 0.6);
+    border: 1px solid #d5dbdb;
+    border-radius: 6px;
+}
+
+.tile-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.tile-stats-row:last-child {
+    margin-bottom: 0;
+}
+
+.tile-stats-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7f8c8d;
+    border-bottom: 1px solid #d5dbdb;
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+.tile-stats-header .tile-stats-label {
+    width: 38px;
+}
+
+.tile-stats-header .tile-stats-count-label {
+    width: 60px;
+    text-align: right;
+}
+
+.tile-stats-header .tile-stats-size-label {
+    width: 60px;
+    text-align: right;
+    margin-left: auto;
+    padding-right: 24px;
+}
+
+.tile-stats-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #34495e;
+    width: 38px;
+    flex-shrink: 0;
+}
+
+.tile-stats-row input.tile-stats-count,
+.tile-stats-row input.tile-stats-size {
+    width: 60px;
+    padding: 3px 5px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+    font-size: 11px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    text-align: right;
+    flex: none;
+}
+
+.tile-stats-row .unit-label {
+    font-size: 11px;
+    width: 18px;
+}
+
+.tile-stats-total {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #bdc3c7;
+    font-weight: 600;
+}
+
+.tile-stats-total .tile-stats-label {
+    color: #2c3e50;
+}
+
+.tile-stats-total input.tile-stats-count,
+.tile-stats-total input.tile-stats-size {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
 /* ポイント情報コンテナ */
 .point-info-container {
     margin-top: 20px;
