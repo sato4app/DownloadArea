@@ -13,13 +13,21 @@ export class PointManager {
         this.isAddingPoint = false;
         this.isMovingPoint = false;
         this.appInstance = null; // アプリケーションインスタンスへの参照
-        
+        this.onPointsChanged = null; // ポイント増減・移動・区分変更で呼ばれるコールバック
+
         // ドラッグ関連の状態
         this.isDragging = false;
         this.draggingMarker = null;
         this.draggingPointId = null;
-        
+
         this.initEventHandlers();
+    }
+
+    // ポイント変更通知
+    notifyPointsChanged() {
+        if (typeof this.onPointsChanged === 'function') {
+            this.onPointsChanged();
+        }
     }
 
     // アプリケーションインスタンスを設定
@@ -62,13 +70,14 @@ export class PointManager {
     // すべてのポイントを地図に表示
     displayAllPoints() {
         this.clearAllMarkers();
-        
+
         const points = this.gpsDataManager.getAllPoints();
         points.forEach(point => {
             this.addMarkerForPoint(point);
         });
 
         this.updatePointCountDisplay();
+        this.notifyPointsChanged();
     }
 
     // 指定位置の近くに既存ポイントがあるかチェック
@@ -148,6 +157,7 @@ export class PointManager {
         this.addMarkerForPoint(point);
         await this.selectPoint(point.id, true); // 新しいポイントフラグをtrueにする
         this.updatePointCountDisplay();
+        this.notifyPointsChanged();
         this.showMessage(DataUtils.formatMessage(CONFIG.MESSAGES.POINT_ADDED, {id: point.id}));
 
         // 標高をAPIから取得
@@ -239,6 +249,7 @@ export class PointManager {
         const point = this.gpsDataManager.updatePoint(pointId, { lat, lng });
         if (point) {
             this.updatePointInfoDisplay(point);
+            this.notifyPointsChanged();
             this.showMessage(DataUtils.formatMessage(CONFIG.MESSAGES.POINT_MOVED, {id: pointId}));
         }
     }
@@ -269,6 +280,7 @@ export class PointManager {
         this.clearPointInfoDisplay();
 
         this.updatePointCountDisplay();
+        this.notifyPointsChanged();
         this.showMessage(DataUtils.formatMessage(CONFIG.MESSAGES.POINT_DELETED, {id: deletedPointId}));
     }
 
@@ -361,17 +373,20 @@ export class PointManager {
         };
 
         this.gpsDataManager.updatePoint(this.selectedPointId, updates);
-        
+
         // IDが変更された場合、マーカーのマップを更新
         if (updates.id !== this.selectedPointId) {
             const marker = this.markers.get(this.selectedPointId);
             this.markers.delete(this.selectedPointId);
             this.markers.set(updates.id, marker);
             this.selectedPointId = updates.id;
-            
+
             // ツールチップを更新
             marker.setTooltipContent(updates.id);
         }
+
+        // 区分の変更でDownload領域の対象集合が変わるため通知
+        this.notifyPointsChanged();
     }
 
     // DMS座標を「東経・北緯」順でE/N付きでフォーマット

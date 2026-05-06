@@ -4,6 +4,7 @@ import { GPSDataManager } from './gps-data-manager.js';
 import { PointManager } from './point-manager.js';
 import { FileHandler } from './file-handler.js';
 import { DataUtils } from './data-utils.js';
+import { DownloadAreaManager } from './download-area.js';
 import { CONFIG } from './config.js';
 
 class PointGPSApp {
@@ -29,7 +30,11 @@ class PointGPSApp {
             // ポイント管理初期化
             this.pointManager = new PointManager(this.mapManager, this.gpsDataManager);
             this.pointManager.setAppInstance(this);
-            
+
+            // Download領域管理初期化（円描画とファイル出力）
+            this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager);
+            this.pointManager.onPointsChanged = () => this.downloadAreaManager.updateCircles();
+
             // イベントハンドラー設定
             this.setupEventHandlers();
             
@@ -100,11 +105,24 @@ class PointGPSApp {
             }
         });
 
-        // ダウンロード領域の指定ファイル出力ボタン（機能未実装）
+        // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
         exportDownloadAreaBtn.addEventListener('click', () => {
-            this.showMessage('ダウンロード領域の指定ファイル出力機能は未実装です');
+            try {
+                const result = this.downloadAreaManager.exportFiles();
+                if (result.success) {
+                    this.showMessage(
+                        `tile_buffers.geojson と tile_manifest.json を出力しました\n` +
+                        `対象: ${result.pointCount}ポイント / z17:${result.z17Count}枚 / z18:${result.z18Count}枚`
+                    );
+                } else {
+                    this.showError(result.error);
+                }
+            } catch (error) {
+                console.error('ファイル出力エラー:', error);
+                this.showError('ファイル出力中にエラーが発生しました');
+            }
         });
 
         // ポイント情報フィールドの変更イベント
