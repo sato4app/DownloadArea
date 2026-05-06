@@ -63,6 +63,13 @@
                 <label for="pointCountField">ポイント数</label>
                 <input type="text" id="pointCountField" readonly value="0" aria-describedby="point-count-help">
                 <span class="unit-label" aria-hidden="true">個</span>
+                <button id="dynamicBufferToggleBtn"
+                        type="button"
+                        class="dynamic-buffer-toggle"
+                        aria-pressed="false"
+                        title="近接ポイントの円バッファを縮小して、ダウンロードタイル数を削減します">
+                    動的バッファ適用
+                </button>
                 <div id="point-count-help" class="visually-hidden">現在読み込まれているGPSポイントの数</div>
             </div>
 

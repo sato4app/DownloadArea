@@ -10,6 +10,18 @@ export class DownloadAreaManager {
         this.mapManager = mapManager;
         this.gpsDataManager = gpsDataManager;
         this.bufferLayer = L.layerGroup().addTo(this.mapManager.getMap());
+        // 動的バッファの適用状態（UIトグルで切り替え）。初期は「適用前」。
+        this.dynamicBufferEnabled = false;
+    }
+
+    // 動的バッファのON/OFFを切り替えて再描画・統計再計算
+    setDynamicBufferEnabled(enabled) {
+        this.dynamicBufferEnabled = !!enabled;
+        this.updateCircles();
+    }
+
+    isDynamicBufferEnabled() {
+        return this.dynamicBufferEnabled;
     }
 
     // 「Download領域の算出から除外」以外のポイントを返す
@@ -18,21 +30,55 @@ export class DownloadAreaManager {
             .filter(p => p.category !== CONFIG.CATEGORIES.EXCLUDED);
     }
 
+    // 動的半径マップを返す。Map<pointId, {z17: number, z18: number}>
+    // 各ポイントの「他ポイントへの最近接距離 × SHRINK_FACTOR」を基本半径と比較し、
+    // RADIUS_FLOOR_M を下限として採用する。
+    computeDynamicRadii(points) {
+        const map = new Map();
+        if (!this.dynamicBufferEnabled || points.length < 2) {
+            for (const p of points) {
+                map.set(p.id, { z17: DA.BUFFER_M_Z17, z18: DA.BUFFER_M_Z18 });
+            }
+            return map;
+        }
+        for (const p of points) {
+            let dMin = Infinity;
+            for (const q of points) {
+                if (q.id === p.id) continue;
+                const d = this.haversineM(p.lat, p.lng, q.lat, q.lng);
+                if (d < dMin) dMin = d;
+            }
+            const shrunk = dMin * DA.SHRINK_FACTOR;
+            const r17 = Math.max(DA.RADIUS_FLOOR_M, Math.min(DA.BUFFER_M_Z17, shrunk));
+            const r18 = Math.max(DA.RADIUS_FLOOR_M, Math.min(DA.BUFFER_M_Z18, shrunk));
+            map.set(p.id, { z17: r17, z18: r18 });
+        }
+        return map;
+    }
+
+    // 指定ポイントの動的半径を取得（マップ未登録時は基本半径にフォールバック）
+    radiiFor(p, radiiMap) {
+        return radiiMap.get(p.id) || { z17: DA.BUFFER_M_Z17, z18: DA.BUFFER_M_Z18 };
+    }
+
     // 円の表示を更新
     updateCircles() {
         this.bufferLayer.clearLayers();
         const points = this.getEligiblePoints();
+        const radii = this.computeDynamicRadii(points);
 
         for (const p of points) {
+            const r = this.radiiFor(p, radii);
+
             // z=17 バッファ
             L.circle([p.lat, p.lng], {
-                radius: DA.BUFFER_M_Z17,
+                radius: r.z17,
                 ...CONFIG.BUFFER_CIRCLE_Z17_STYLE
             }).addTo(this.bufferLayer);
 
             // z=18 バッファ
             L.circle([p.lat, p.lng], {
-                radius: DA.BUFFER_M_Z18,
+                radius: r.z18,
                 ...CONFIG.BUFFER_CIRCLE_Z18_STYLE
             }).addTo(this.bufferLayer);
         }
@@ -41,14 +87,18 @@ export class DownloadAreaManager {
     }
 
     // ズーム別タイル統計を計算（[{ z, count, sizeMB }, ...]）
+    // z=18 のみ z18 動的半径、それ以外（z=10〜17）は z17 動的半径を使用。
     calculateTileStats() {
         const points = this.getEligiblePoints();
+        const radii = this.computeDynamicRadii(points);
         const stats = [];
 
         for (const z of DA.STAT_ZOOM_LEVELS) {
-            const radius = (z === DA.Z18) ? DA.BUFFER_M_Z18 : DA.BUFFER_M_Z17;
+            const useZ18 = (z === DA.Z18);
             const tileSet = new Set();
             for (const p of points) {
+                const r = this.radiiFor(p, radii);
+                const radius = useZ18 ? r.z18 : r.z17;
                 for (const [x, y] of this.tilesForPoint(p.lat, p.lng, radius, z)) {
                     tileSet.add(`${x},${y}`);
                 }
@@ -115,22 +165,24 @@ export class DownloadAreaManager {
     // tile_buffers.geojson を生成
     generateTileBuffersGeoJSON() {
         const points = this.getEligiblePoints();
+        const radii = this.computeDynamicRadii(points);
         const features = [];
         for (const p of points) {
+            const r = this.radiiFor(p, radii);
             features.push({
                 type: 'Feature',
-                properties: { layer: DA.LAYER_KEY_Z17, buffer_m: DA.BUFFER_M_Z17 },
+                properties: { layer: DA.LAYER_KEY_Z17, buffer_m: r.z17 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [this.circlePolygon(p.lat, p.lng, DA.BUFFER_M_Z17)]
+                    coordinates: [this.circlePolygon(p.lat, p.lng, r.z17)]
                 }
             });
             features.push({
                 type: 'Feature',
-                properties: { layer: DA.LAYER_KEY_Z18, buffer_m: DA.BUFFER_M_Z18 },
+                properties: { layer: DA.LAYER_KEY_Z18, buffer_m: r.z18 },
                 geometry: {
                     type: 'Polygon',
-                    coordinates: [this.circlePolygon(p.lat, p.lng, DA.BUFFER_M_Z18)]
+                    coordinates: [this.circlePolygon(p.lat, p.lng, r.z18)]
                 }
             });
         }
@@ -138,8 +190,9 @@ export class DownloadAreaManager {
             type: 'FeatureCollection',
             metadata: {
                 version: DA.MANIFEST_VERSION,
-                z17_layer: { buffer_m: DA.BUFFER_M_Z17, max_zoom: DA.Z17_MAX_ZOOM, min_zoom: DA.Z17_MIN_ZOOM },
-                z18_layer: { buffer_m: DA.BUFFER_M_Z18, max_zoom: DA.Z18_MAX_ZOOM, min_zoom: DA.Z18_MIN_ZOOM }
+                dynamic_buffer: this.dynamicBufferEnabled,
+                z17_layer: { buffer_m_max: DA.BUFFER_M_Z17, max_zoom: DA.Z17_MAX_ZOOM, min_zoom: DA.Z17_MIN_ZOOM },
+                z18_layer: { buffer_m_max: DA.BUFFER_M_Z18, max_zoom: DA.Z18_MAX_ZOOM, min_zoom: DA.Z18_MIN_ZOOM }
             },
             features
         };
@@ -177,12 +230,52 @@ export class DownloadAreaManager {
         return 2 * DA.EARTH_RADIUS_M * Math.asin(Math.sqrt(a));
     }
 
-    // 円とタイルbboxの交差判定（最近接点をクランプで求めて距離評価）
+    // 円とタイルbboxの交差判定（最近接点クランプ + カバー率閾値）
     circleIntersectsTile(lat, lon, radiusM, bbox) {
+        // 1次フィルタ: 円とタイルbboxが触れるか
         const clampedLat = Math.max(bbox.latS, Math.min(lat, bbox.latN));
         const clampedLon = Math.max(bbox.lonW, Math.min(lon, bbox.lonE));
-        const dist = this.haversineM(lat, lon, clampedLat, clampedLon);
-        return dist <= radiusM;
+        const minDist = this.haversineM(lat, lon, clampedLat, clampedLon);
+        if (minDist > radiusM) return false;
+
+        // 閾値が0以下なら従来通り「触れたら採用」
+        const threshold = DA.COVERAGE_THRESHOLD;
+        if (!threshold || threshold <= 0) return true;
+
+        // バッファ面積がタイル面積×閾値より小さい場合（低ズーム）は閾値スキップ。
+        // 例: z=10 ではタイル≫バッファのため、5% を物理的に満たせない。
+        const circleArea = Math.PI * radiusM * radiusM;
+        const tileArea = this.approxTileAreaM2(bbox);
+        if (circleArea < threshold * tileArea) return true;
+
+        // タイル内でサンプリングし、カバー率が閾値以上か判定
+        return this.tileCoverageRatio(lat, lon, radiusM, bbox) >= threshold;
+    }
+
+    // タイルbboxの面積をメートル平方で近似
+    approxTileAreaM2(bbox) {
+        const midLatRad = (bbox.latS + bbox.latN) / 2 * Math.PI / 180;
+        const heightM = (bbox.latN - bbox.latS) * Math.PI / 180 * DA.EARTH_RADIUS_M;
+        const widthM = (bbox.lonE - bbox.lonW) * Math.PI / 180 * DA.EARTH_RADIUS_M * Math.cos(midLatRad);
+        return widthM * heightM;
+    }
+
+    // タイル内をN×Nグリッドでサンプリングし、円内に入ったサンプルの比率を返す
+    tileCoverageRatio(lat, lon, radiusM, bbox) {
+        const N = DA.COVERAGE_SAMPLE_GRID;
+        let inside = 0;
+        const dLat = bbox.latN - bbox.latS;
+        const dLon = bbox.lonE - bbox.lonW;
+        for (let i = 0; i < N; i++) {
+            const sampleLat = bbox.latS + dLat * (i + 0.5) / N;
+            for (let j = 0; j < N; j++) {
+                const sampleLon = bbox.lonW + dLon * (j + 0.5) / N;
+                if (this.haversineM(lat, lon, sampleLat, sampleLon) <= radiusM) {
+                    inside++;
+                }
+            }
+        }
+        return inside / (N * N);
     }
 
     // 1点について該当タイルを列挙
@@ -211,14 +304,16 @@ export class DownloadAreaManager {
     // tile_manifest.json を生成
     generateTileManifest() {
         const points = this.getEligiblePoints();
+        const radii = this.computeDynamicRadii(points);
         const z17Set = new Set();
         const z18Set = new Set();
 
         for (const p of points) {
-            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, DA.BUFFER_M_Z17, DA.Z17)) {
+            const r = this.radiiFor(p, radii);
+            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, r.z17, DA.Z17)) {
                 z17Set.add(`${x},${y}`);
             }
-            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, DA.BUFFER_M_Z18, DA.Z18)) {
+            for (const [x, y] of this.tilesForPoint(p.lat, p.lng, r.z18, DA.Z18)) {
                 z18Set.add(`${x},${y}`);
             }
         }
@@ -230,16 +325,17 @@ export class DownloadAreaManager {
         return {
             version: DA.MANIFEST_VERSION,
             source: DA.MANIFEST_SOURCE,
+            dynamic_buffer: this.dynamicBufferEnabled,
             layers: {
                 [DA.LAYER_KEY_Z17]: {
                     z: DA.Z17,
-                    buffer_m: DA.BUFFER_M_Z17,
+                    buffer_m_max: DA.BUFFER_M_Z17,
                     tile_count: z17Set.size,
                     tiles: tilesFromSet(z17Set)
                 },
                 [DA.LAYER_KEY_Z18]: {
                     z: DA.Z18,
-                    buffer_m: DA.BUFFER_M_Z18,
+                    buffer_m_max: DA.BUFFER_M_Z18,
                     tile_count: z18Set.size,
                     tiles: tilesFromSet(z18Set)
                 }

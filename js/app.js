@@ -105,6 +105,19 @@ class PointGPSApp {
             }
         });
 
+        // 動的バッファ適用トグルボタン
+        const dynamicBufferToggleBtn = document.getElementById('dynamicBufferToggleBtn');
+        dynamicBufferToggleBtn.addEventListener('click', () => {
+            const next = !this.downloadAreaManager.isDynamicBufferEnabled();
+            this.downloadAreaManager.setDynamicBufferEnabled(next);
+
+            dynamicBufferToggleBtn.classList.toggle('active', next);
+            dynamicBufferToggleBtn.setAttribute('aria-pressed', String(next));
+            dynamicBufferToggleBtn.textContent = next ? '動的バッファ解除' : '動的バッファ適用';
+
+            this.showMessage(next ? '動的バッファを適用しました' : '動的バッファを解除しました');
+        });
+
         // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
