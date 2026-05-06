@@ -322,7 +322,7 @@ export class PointManager {
             this.formatDMSCoordinates(point.lng, point.lat);
         document.getElementById('elevationField').value = point.elevation;
         document.getElementById('locationField').value = point.location;
-        document.getElementById('categoryField').value = point.category || 'ポイントGPS';
+        document.getElementById('categoryField').value = point.category || '';
     }
 
     // ドラッグ中のリアルタイム座標更新（緯度・経度・DMSのみ）
@@ -340,7 +340,7 @@ export class PointManager {
         document.getElementById('dmsField').value = '';
         document.getElementById('elevationField').value = '';
         document.getElementById('locationField').value = '';
-        document.getElementById('categoryField').value = 'ポイントGPS';
+        document.getElementById('categoryField').value = '';
     }
 
     // ポイント数表示を更新
