@@ -61,25 +61,39 @@ export class DownloadAreaManager {
         return stats;
     }
 
-    // 統計表示欄を更新
+    // 統計表示欄を更新（z=10〜16 は集約、z=17・z=18・合計）
     updateTileStatsDisplay() {
         const stats = this.calculateTileStats();
+        const setField = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value;
+        };
+
+        let lowZoomCount = 0;
+        let lowZoomSize = 0;
         let totalCount = 0;
         let totalSizeMB = 0;
 
         for (const s of stats) {
-            const countEl = document.getElementById(`tileCountZ${s.z}`);
-            const sizeEl = document.getElementById(`tileSizeZ${s.z}`);
-            if (countEl) countEl.value = s.count.toLocaleString();
-            if (sizeEl) sizeEl.value = s.sizeMB.toFixed(1);
+            if (s.z === DA.Z17) {
+                setField('tileCountZ17', s.count.toLocaleString());
+                setField('tileSizeZ17', s.sizeMB.toFixed(1));
+            } else if (s.z === DA.Z18) {
+                setField('tileCountZ18', s.count.toLocaleString());
+                setField('tileSizeZ18', s.sizeMB.toFixed(1));
+            } else {
+                // z=10〜16 集約
+                lowZoomCount += s.count;
+                lowZoomSize += s.sizeMB;
+            }
             totalCount += s.count;
             totalSizeMB += s.sizeMB;
         }
 
-        const totalCountEl = document.getElementById('tileCountTotal');
-        const totalSizeEl = document.getElementById('tileSizeTotal');
-        if (totalCountEl) totalCountEl.value = totalCount.toLocaleString();
-        if (totalSizeEl) totalSizeEl.value = totalSizeMB.toFixed(1);
+        setField('tileCountZ10to16', lowZoomCount.toLocaleString());
+        setField('tileSizeZ10to16', lowZoomSize.toFixed(1));
+        setField('tileCountTotal', totalCount.toLocaleString());
+        setField('tileSizeTotal', totalSizeMB.toFixed(1));
     }
 
     // 円のポリゴン近似（[lng, lat] の配列、最後の点で閉じる）
