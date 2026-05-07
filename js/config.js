@@ -44,8 +44,9 @@ export const CONFIG = {
 
     // 仮IDフォーマット（ポイント追加時）
     TEMPORARY_ID: {
-        PREFIX: '仮',
-        PAD_WIDTH: 2 // 仮01, 仮02 ... の桁数
+        PREFIX: 'Z#',
+        PAD_WIDTH: 2,                  // Z#01, Z#02 ... の桁数
+        LOCATION_PREFIX: 'Zoom Download #' // 名称の既定値: 'Zoom Download #01' のようになる
     },
 
     // Excelヘッダー（完全一致）

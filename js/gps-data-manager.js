@@ -134,12 +134,24 @@ export class GPSDataManager {
 
     // ポイントを追加
     addPoint(lat, lng, id = null, elevation = '', location = '') {
+        const finalId = id || this.generateTemporaryId();
+
+        // 名称が未指定で仮IDを生成した場合は、IDの番号部を使って既定名称を組み立てる
+        let finalLocation = location;
+        if (!location && !id) {
+            const { PREFIX, LOCATION_PREFIX } = CONFIG.TEMPORARY_ID;
+            const numPart = finalId.startsWith(PREFIX) ? finalId.substring(PREFIX.length) : '';
+            if (numPart) {
+                finalLocation = `${LOCATION_PREFIX}${numPart}`;
+            }
+        }
+
         const point = {
-            id: id || this.generateTemporaryId(),
+            id: finalId,
             lat: lat,
             lng: lng,
             elevation: DataUtils.normalizeElevation(elevation),
-            location: location,
+            location: finalLocation,
             category: CONFIG.CATEGORIES.ADDED
         };
 
