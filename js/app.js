@@ -140,7 +140,7 @@ class PointGPSApp {
                     this.showError(CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY);
                     return;
                 }
-                const defaultFilename = this.fileHandler.getDefaultFileName();
+                const defaultFilename = `ポイントGPS区分付-${this.fileHandler.getTodayString()}`;
                 const result = await this.fileHandler.saveExcelWithUserChoice(data, defaultFilename);
                 if (result.success) {
                     this.showMessage(`Excelファイル「${result.filename}」を出力しました`);
