@@ -185,7 +185,7 @@ export class GPSDataManager {
         return point.elevation;
     }
     
-    // 仮IDを生成（仮01から始まる連番）
+    // 仮IDを生成（Z#01から始まる連番）
     generateTemporaryId() {
         const { PREFIX, PAD_WIDTH } = CONFIG.TEMPORARY_ID;
         const idPattern = new RegExp(`^${PREFIX}\\d{${PAD_WIDTH}}$`);

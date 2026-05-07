@@ -46,7 +46,7 @@ export const CONFIG = {
     TEMPORARY_ID: {
         PREFIX: 'Z#',
         PAD_WIDTH: 2,                  // Z#01, Z#02 ... の桁数
-        LOCATION_PREFIX: 'Zoom Download #' // 名称の既定値: 'Zoom Download #01' のようになる
+        LOCATION_PREFIX: 'Zoom DL #' // 名称の既定値: 'Zoom DL #01' のようになる
     },
 
     // Excelヘッダー（完全一致）
