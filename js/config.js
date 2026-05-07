@@ -39,7 +39,7 @@ export const CONFIG = {
     CATEGORIES: {
         GPS: 'ポイントGPS',
         ADDED: '追加ポイント',
-        EXCLUDED: 'Download領域の算出から除外'
+        EXCLUDED: '領域の算出から除外'
     },
 
     // 仮IDフォーマット（ポイント追加時）
