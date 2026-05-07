@@ -248,17 +248,25 @@ export class GPSDataManager {
     }
 
     // Excel出力用の二次元配列を生成（読み込み形式に「ポイント区分」列を追加）
+    // 追加ポイントの緯度・経度は COORDINATE_DECIMAL_DIGITS 桁(=5桁)に丸める。
+    // それ以外（読み込んだGPSポイント等）は元の値をそのまま保持。
     buildExcelExportData() {
         const H = CONFIG.EXCEL_HEADERS;
+        const digits = CONFIG.COORDINATE_DECIMAL_DIGITS;
         const header = [H.ID, H.LOCATION, H.LAT, H.LNG, H.ELEVATION, H.CATEGORY];
-        const rows = this.gpsPoints.map(p => [
-            p.id,
-            p.location,
-            p.lat,
-            p.lng,
-            p.elevation,
-            p.category || ''
-        ]);
+        const rows = this.gpsPoints.map(p => {
+            const isAdded = p.category === CONFIG.CATEGORIES.ADDED;
+            const lat = isAdded ? Number(p.lat.toFixed(digits)) : p.lat;
+            const lng = isAdded ? Number(p.lng.toFixed(digits)) : p.lng;
+            return [
+                p.id,
+                p.location,
+                lat,
+                lng,
+                p.elevation,
+                p.category || ''
+            ];
+        });
         return [header, ...rows];
     }
 }
