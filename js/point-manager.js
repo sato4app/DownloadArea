@@ -100,12 +100,21 @@ export class PointManager {
         return null;
     }
 
+    // 区分に応じたマーカー色を返す
+    getMarkerColorForCategory(category) {
+        const colors = CONFIG.POINT_MARKER_COLORS;
+        if (category === CONFIG.CATEGORIES.ADDED) return colors.ADDED;
+        if (category === CONFIG.CATEGORIES.EXCLUDED) return colors.EXCLUDED;
+        return colors.GPS;
+    }
+
     // 指定ポイントのマーカーを追加
     addMarkerForPoint(point) {
+        const color = this.getMarkerColorForCategory(point.category);
         const marker = L.circleMarker([point.lat, point.lng], {
             radius: CONFIG.POINT_MARKER_RADIUS,
-            fillColor: CONFIG.POINT_MARKER_COLOR,
-            color: CONFIG.POINT_MARKER_COLOR,
+            fillColor: color,
+            color: color,
             weight: CONFIG.POINT_MARKER_WEIGHT,
             opacity: CONFIG.POINT_MARKER_OPACITY,
             fillOpacity: CONFIG.POINT_MARKER_FILL_OPACITY,
@@ -182,11 +191,13 @@ export class PointManager {
 
     // ポイントを選択
     async selectPoint(pointId, isNewPoint = false) {
-        // 前回選択されたマーカーの色をリセット
+        // 前回選択されたマーカーの色を区分に応じた色に戻す
         if (this.selectedMarker) {
+            const prevPoint = this.gpsDataManager.getPointById(this.selectedPointId);
+            const prevColor = this.getMarkerColorForCategory(prevPoint && prevPoint.category);
             this.selectedMarker.setStyle({
-                fillColor: CONFIG.POINT_MARKER_COLOR,
-                color: CONFIG.POINT_MARKER_COLOR
+                fillColor: prevColor,
+                color: prevColor
             });
         }
 
