@@ -443,9 +443,7 @@ export class DownloadAreaManager {
     }
 
     // 2つのファイルを出力
-    // 対応ブラウザではフォルダ選択ダイアログを表示し、両ファイルをそのフォルダに保存する。
-    // 非対応環境では従来通り個別ダウンロードにフォールバック。
-    async exportFiles() {
+    exportFiles() {
         const points = this.getEligiblePoints();
         if (points.length === 0) {
             return { success: false, error: CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY };
@@ -454,42 +452,15 @@ export class DownloadAreaManager {
         const geojson = this.generateTileBuffersGeoJSON();
         const manifest = this.generateTileManifest();
 
-        let folderName = '';
-
-        if ('showDirectoryPicker' in window) {
-            try {
-                const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                await this.writeJSONToDirectory(dirHandle, DA.GEOJSON_FILENAME, geojson);
-                await this.writeJSONToDirectory(dirHandle, DA.MANIFEST_FILENAME, manifest);
-                folderName = dirHandle.name;
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    return { success: false, error: 'キャンセル' };
-                }
-                // 権限エラー等の場合は通常ダウンロードへフォールバック
-                this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
-                this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
-            }
-        } else {
-            this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
-            this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
-        }
+        this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
+        this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
 
         return {
             success: true,
             pointCount: points.length,
             z17Count: manifest.layers[DA.LAYER_KEY_Z17].tile_count,
-            z18Count: manifest.layers[DA.LAYER_KEY_Z18].tile_count,
-            folderName
+            z18Count: manifest.layers[DA.LAYER_KEY_Z18].tile_count
         };
-    }
-
-    // 指定したFileSystemDirectoryHandleにJSONを書き込む
-    async writeJSONToDirectory(dirHandle, filename, obj) {
-        const fileHandle = await dirHandle.getFileHandle(filename, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(JSON.stringify(obj));
-        await writable.close();
     }
 
     downloadJSON(obj, filename) {

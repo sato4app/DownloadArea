@@ -35,12 +35,6 @@ class PointGPSApp {
             this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager);
             this.pointManager.onPointsChanged = () => this.downloadAreaManager.updateCircles();
 
-            // 出力ファイル名表示をconfigから流し込む
-            const geojsonFilenameEl = document.getElementById('exportGeoJsonFilename');
-            const manifestFilenameEl = document.getElementById('exportManifestFilename');
-            if (geojsonFilenameEl) geojsonFilenameEl.textContent = CONFIG.DOWNLOAD_AREA.GEOJSON_FILENAME;
-            if (manifestFilenameEl) manifestFilenameEl.textContent = CONFIG.DOWNLOAD_AREA.MANIFEST_FILENAME;
-
             // イベントハンドラー設定
             this.setupEventHandlers();
             
@@ -162,16 +156,15 @@ class PointGPSApp {
         // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
-        exportDownloadAreaBtn.addEventListener('click', async () => {
+        exportDownloadAreaBtn.addEventListener('click', () => {
             try {
-                const result = await this.downloadAreaManager.exportFiles();
+                const result = this.downloadAreaManager.exportFiles();
                 if (result.success) {
-                    const folderInfo = result.folderName ? `\n保存先フォルダ: ${result.folderName}` : '';
                     this.showMessage(
-                        `tile_buffers.geojson と tile_manifest.json を出力しました${folderInfo}\n` +
+                        `tile_buffers.geojson と tile_manifest.json を出力しました\n` +
                         `対象: ${result.pointCount}ポイント / z17:${result.z17Count}枚 / z18:${result.z18Count}枚`
                     );
-                } else if (result.error !== 'キャンセル') {
+                } else {
                     this.showError(result.error);
                 }
             } catch (error) {

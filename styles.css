@@ -456,27 +456,6 @@ body {
     background-color: #2980b9;
 }
 
-/* 出力ファイル名一覧（Download領域出力ボタンの下） */
-.export-file-list {
-    list-style: none;
-    margin: 6px 0 0 4px;
-    padding: 0;
-    font-size: 11px;
-    color: #6c757d;
-}
-
-.export-file-list li {
-    padding: 1px 0 1px 14px;
-    position: relative;
-    font-family: 'Consolas', 'Menlo', monospace;
-}
-
-.export-file-list li::before {
-    content: '•';
-    position: absolute;
-    left: 4px;
-    color: #95a5a6;
-}
 
 /* チュートリアルボタン */
 .tutorial-button {
