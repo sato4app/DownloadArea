@@ -84,13 +84,14 @@ export class GPSDataManager {
                 continue; // 無効な座標の行はスキップ
             }
             
+            const categoryValue = DataUtils.getCellValue(row, columnIndexes.category);
             const point = {
                 id: idValue,
                 lat: lat,
                 lng: lng,
                 elevation: DataUtils.normalizeElevation(DataUtils.getCellValue(row, columnIndexes.elevation)),
                 location: locationValue,
-                category: CONFIG.CATEGORIES.GPS
+                category: categoryValue || CONFIG.CATEGORIES.GPS
             };
 
             this.gpsPoints.push(point);
@@ -120,6 +121,9 @@ export class GPSDataManager {
             }
             else if (header === H.ELEVATION) {
                 indexes.elevation = i;
+            }
+            else if (header === H.CATEGORY) {
+                indexes.category = i;
             }
         }
 
@@ -229,5 +233,20 @@ export class GPSDataManager {
     // IDでポイントを検索
     getPointById(id) {
         return this.gpsPoints.find(p => p.id === id);
+    }
+
+    // Excel出力用の二次元配列を生成（読み込み形式に「ポイント区分」列を追加）
+    buildExcelExportData() {
+        const H = CONFIG.EXCEL_HEADERS;
+        const header = [H.ID, H.LOCATION, H.LAT, H.LNG, H.ELEVATION, H.CATEGORY];
+        const rows = this.gpsPoints.map(p => [
+            p.id,
+            p.location,
+            p.lat,
+            p.lng,
+            p.elevation,
+            p.category || ''
+        ]);
+        return [header, ...rows];
     }
 }

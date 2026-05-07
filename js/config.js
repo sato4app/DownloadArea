@@ -54,7 +54,8 @@ export const CONFIG = {
         LOCATION: '名称',
         LAT: '緯度',
         LNG: '経度',
-        ELEVATION: '標高'
+        ELEVATION: '標高',
+        CATEGORY: 'ポイント区分'
     },
 
     // Download領域 (タイル/円バッファ) 設定

@@ -131,6 +131,28 @@ class PointGPSApp {
             this.showMessage(next ? '動的バッファ削減を適用しました' : '動的バッファ削減を解除しました');
         });
 
+        // ポイント出力(Excel)ボタン
+        const exportPointsExcelBtn = document.getElementById('exportPointsExcelBtn');
+        exportPointsExcelBtn.addEventListener('click', async () => {
+            try {
+                const data = this.gpsDataManager.buildExcelExportData();
+                if (data.length <= 1) {
+                    this.showError(CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY);
+                    return;
+                }
+                const defaultFilename = this.fileHandler.getDefaultFileName();
+                const result = await this.fileHandler.saveExcelWithUserChoice(data, defaultFilename);
+                if (result.success) {
+                    this.showMessage(`Excelファイル「${result.filename}」を出力しました`);
+                } else if (result.error !== 'キャンセル') {
+                    this.showError(`ファイル出力に失敗しました: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Excel出力エラー:', error);
+                this.showError(CONFIG.MESSAGES.EXPORT_ERROR);
+            }
+        });
+
         // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
