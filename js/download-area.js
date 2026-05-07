@@ -10,8 +10,9 @@ export class DownloadAreaManager {
         this.mapManager = mapManager;
         this.gpsDataManager = gpsDataManager;
         this.bufferLayer = L.layerGroup().addTo(this.mapManager.getMap());
-        // 動的バッファの適用状態（UIトグルで切り替え）。初期は「適用前」。
+        // 削減モードの適用状態（UIトグルで切り替え）。初期はいずれも「適用前」。
         this.dynamicBufferEnabled = false;
+        this.clusterMergeEnabled = false;
     }
 
     // 動的バッファのON/OFFを切り替えて再描画・統計再計算
@@ -24,20 +25,116 @@ export class DownloadAreaManager {
         return this.dynamicBufferEnabled;
     }
 
+    // クラスタ統合のON/OFFを切り替えて再描画・統計再計算
+    setClusterMergeEnabled(enabled) {
+        this.clusterMergeEnabled = !!enabled;
+        this.updateCircles();
+    }
+
+    isClusterMergeEnabled() {
+        return this.clusterMergeEnabled;
+    }
+
     // 「Download領域の算出から除外」以外のポイントを返す
     getEligiblePoints() {
         return this.gpsDataManager.getAllPoints()
             .filter(p => p.category !== CONFIG.CATEGORIES.EXCLUDED);
     }
 
+    // 円描画／タイル算出に使う「実効ポイント」を返す。
+    // クラスタ統合が ON の場合は近接ポイントを重心の合成ポイントに置換。
+    // 各実効ポイントは baseR17 / baseR18 を保持（クラスタの場合はクラスタ広がり≧基本半径）。
+    getEffectivePoints() {
+        const points = this.getEligiblePoints();
+        if (!this.clusterMergeEnabled || points.length < 2) {
+            return points.map(p => ({
+                id: p.id,
+                lat: p.lat,
+                lng: p.lng,
+                baseR17: DA.BUFFER_M_Z17,
+                baseR18: DA.BUFFER_M_Z18,
+                memberCount: 1
+            }));
+        }
+        const clusters = this.computeClusters(points);
+        return clusters.map((cluster, idx) => this.makeMergedPoint(cluster, idx));
+    }
+
+    // ペア距離 ≤ CLUSTER_DISTANCE_M を辺としたUnion-Findで連結成分(=クラスタ)を求める
+    computeClusters(points) {
+        const n = points.length;
+        const parent = Array.from({ length: n }, (_, i) => i);
+        const find = (x) => {
+            while (parent[x] !== x) {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            return x;
+        };
+        const union = (a, b) => {
+            const ra = find(a), rb = find(b);
+            if (ra !== rb) parent[ra] = rb;
+        };
+
+        const threshold = DA.CLUSTER_DISTANCE_M;
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                const d = this.haversineM(points[i].lat, points[i].lng, points[j].lat, points[j].lng);
+                if (d <= threshold) union(i, j);
+            }
+        }
+
+        const groups = new Map();
+        for (let i = 0; i < n; i++) {
+            const r = find(i);
+            if (!groups.has(r)) groups.set(r, []);
+            groups.get(r).push(points[i]);
+        }
+        return Array.from(groups.values());
+    }
+
+    // クラスタを1つの合成ポイントに圧縮する。
+    // - 中心: クラスタ重心
+    // - baseR17/baseR18: max(基本半径, 重心からクラスタ各点への最大距離)
+    makeMergedPoint(cluster, idx) {
+        if (cluster.length === 1) {
+            const p = cluster[0];
+            return {
+                id: p.id,
+                lat: p.lat,
+                lng: p.lng,
+                baseR17: DA.BUFFER_M_Z17,
+                baseR18: DA.BUFFER_M_Z18,
+                memberCount: 1
+            };
+        }
+        let sumLat = 0, sumLng = 0;
+        for (const p of cluster) { sumLat += p.lat; sumLng += p.lng; }
+        const cLat = sumLat / cluster.length;
+        const cLng = sumLng / cluster.length;
+        let rEnc = 0;
+        for (const p of cluster) {
+            const d = this.haversineM(cLat, cLng, p.lat, p.lng);
+            if (d > rEnc) rEnc = d;
+        }
+        return {
+            id: `__cluster_${idx}`,
+            lat: cLat,
+            lng: cLng,
+            baseR17: Math.max(DA.BUFFER_M_Z17, rEnc),
+            baseR18: Math.max(DA.BUFFER_M_Z18, rEnc),
+            memberCount: cluster.length
+        };
+    }
+
     // 動的半径マップを返す。Map<pointId, {z17: number, z18: number}>
-    // 各ポイントの「他ポイントへの最近接距離 × SHRINK_FACTOR」を基本半径と比較し、
-    // RADIUS_FLOOR_M を下限として採用する。
+    // 各実効ポイントの基本半径(baseR17/baseR18)を上限とし、動的バッファON時は
+    // 「他ポイントへの最近接距離 × SHRINK_FACTOR」で縮小、RADIUS_FLOOR_M を下限とする。
     computeDynamicRadii(points) {
         const map = new Map();
         if (!this.dynamicBufferEnabled || points.length < 2) {
             for (const p of points) {
-                map.set(p.id, { z17: DA.BUFFER_M_Z17, z18: DA.BUFFER_M_Z18 });
+                map.set(p.id, { z17: p.baseR17, z18: p.baseR18 });
             }
             return map;
         }
@@ -49,8 +146,8 @@ export class DownloadAreaManager {
                 if (d < dMin) dMin = d;
             }
             const shrunk = dMin * DA.SHRINK_FACTOR;
-            const r17 = Math.max(DA.RADIUS_FLOOR_M, Math.min(DA.BUFFER_M_Z17, shrunk));
-            const r18 = Math.max(DA.RADIUS_FLOOR_M, Math.min(DA.BUFFER_M_Z18, shrunk));
+            const r17 = Math.max(DA.RADIUS_FLOOR_M, Math.min(p.baseR17, shrunk));
+            const r18 = Math.max(DA.RADIUS_FLOOR_M, Math.min(p.baseR18, shrunk));
             map.set(p.id, { z17: r17, z18: r18 });
         }
         return map;
@@ -58,13 +155,13 @@ export class DownloadAreaManager {
 
     // 指定ポイントの動的半径を取得（マップ未登録時は基本半径にフォールバック）
     radiiFor(p, radiiMap) {
-        return radiiMap.get(p.id) || { z17: DA.BUFFER_M_Z17, z18: DA.BUFFER_M_Z18 };
+        return radiiMap.get(p.id) || { z17: p.baseR17, z18: p.baseR18 };
     }
 
     // 円の表示を更新
     updateCircles() {
         this.bufferLayer.clearLayers();
-        const points = this.getEligiblePoints();
+        const points = this.getEffectivePoints();
         const radii = this.computeDynamicRadii(points);
 
         for (const p of points) {
@@ -89,7 +186,7 @@ export class DownloadAreaManager {
     // ズーム別タイル統計を計算（[{ z, count, sizeMB }, ...]）
     // z=18 のみ z18 動的半径、それ以外（z=10〜17）は z17 動的半径を使用。
     calculateTileStats() {
-        const points = this.getEligiblePoints();
+        const points = this.getEffectivePoints();
         const radii = this.computeDynamicRadii(points);
         const stats = [];
 
@@ -164,7 +261,7 @@ export class DownloadAreaManager {
 
     // tile_buffers.geojson を生成
     generateTileBuffersGeoJSON() {
-        const points = this.getEligiblePoints();
+        const points = this.getEffectivePoints();
         const radii = this.computeDynamicRadii(points);
         const features = [];
         for (const p of points) {
@@ -191,6 +288,7 @@ export class DownloadAreaManager {
             metadata: {
                 version: DA.MANIFEST_VERSION,
                 dynamic_buffer: this.dynamicBufferEnabled,
+                cluster_merge: this.clusterMergeEnabled,
                 z17_layer: { buffer_m_max: DA.BUFFER_M_Z17, max_zoom: DA.Z17_MAX_ZOOM, min_zoom: DA.Z17_MIN_ZOOM },
                 z18_layer: { buffer_m_max: DA.BUFFER_M_Z18, max_zoom: DA.Z18_MAX_ZOOM, min_zoom: DA.Z18_MIN_ZOOM }
             },
@@ -303,7 +401,7 @@ export class DownloadAreaManager {
 
     // tile_manifest.json を生成
     generateTileManifest() {
-        const points = this.getEligiblePoints();
+        const points = this.getEffectivePoints();
         const radii = this.computeDynamicRadii(points);
         const z17Set = new Set();
         const z18Set = new Set();
@@ -326,6 +424,7 @@ export class DownloadAreaManager {
             version: DA.MANIFEST_VERSION,
             source: DA.MANIFEST_SOURCE,
             dynamic_buffer: this.dynamicBufferEnabled,
+            cluster_merge: this.clusterMergeEnabled,
             layers: {
                 [DA.LAYER_KEY_Z17]: {
                     z: DA.Z17,

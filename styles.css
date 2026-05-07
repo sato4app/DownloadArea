@@ -188,34 +188,40 @@ body {
     white-space: nowrap;
 }
 
-/* 動的バッファ適用トグルボタン（ポイント数行の右） */
-.dynamic-buffer-toggle {
-    margin-left: auto;
-    padding: 5px 10px;
+/* タイル削減モード切替ボタン群（ポイント数行の下） */
+.reduction-mode-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.reduction-mode-btn {
+    flex: 1;
+    padding: 6px 10px;
     background-color: #ecf0f1;
     color: #2c3e50;
     border: 1px solid #bdc3c7;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
-    flex-shrink: 0;
+    text-align: center;
 }
 
-.dynamic-buffer-toggle:hover {
+.reduction-mode-btn:hover {
     background-color: #dfe6e9;
     border-color: #95a5a6;
 }
 
-.dynamic-buffer-toggle.active {
+.reduction-mode-btn.active {
     background-color: #16a34a;
     color: #ffffff;
     border-color: #15803d;
 }
 
-.dynamic-buffer-toggle.active:hover {
+.reduction-mode-btn.active:hover {
     background-color: #15803d;
 }
 

@@ -63,14 +63,25 @@
                 <label for="pointCountField">ポイント数</label>
                 <input type="text" id="pointCountField" readonly value="0" aria-describedby="point-count-help">
                 <span class="unit-label" aria-hidden="true">個</span>
+                <div id="point-count-help" class="visually-hidden">現在読み込まれているGPSポイントの数</div>
+            </div>
+
+            <!-- タイル削減モード切替ボタン -->
+            <div class="reduction-mode-buttons" role="group" aria-label="ダウンロードタイル削減モード">
+                <button id="clusterMergeToggleBtn"
+                        type="button"
+                        class="reduction-mode-btn"
+                        aria-pressed="false"
+                        title="近接ポイントを1つの円に統合し、ダウンロードタイル数を削減します">
+                    クラスタ統合
+                </button>
                 <button id="dynamicBufferToggleBtn"
                         type="button"
-                        class="dynamic-buffer-toggle"
+                        class="reduction-mode-btn"
                         aria-pressed="false"
                         title="近接ポイントの円バッファを縮小して、ダウンロードタイル数を削減します">
-                    動的バッファ適用
+                    動的バッファ削減
                 </button>
-                <div id="point-count-help" class="visually-hidden">現在読み込まれているGPSポイントの数</div>
             </div>
 
             <!-- ズーム別タイル統計 -->

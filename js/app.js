@@ -105,7 +105,19 @@ class PointGPSApp {
             }
         });
 
-        // 動的バッファ適用トグルボタン
+        // クラスタ統合トグルボタン
+        const clusterMergeToggleBtn = document.getElementById('clusterMergeToggleBtn');
+        clusterMergeToggleBtn.addEventListener('click', () => {
+            const next = !this.downloadAreaManager.isClusterMergeEnabled();
+            this.downloadAreaManager.setClusterMergeEnabled(next);
+
+            clusterMergeToggleBtn.classList.toggle('active', next);
+            clusterMergeToggleBtn.setAttribute('aria-pressed', String(next));
+
+            this.showMessage(next ? 'クラスタ統合を適用しました' : 'クラスタ統合を解除しました');
+        });
+
+        // 動的バッファ削減トグルボタン
         const dynamicBufferToggleBtn = document.getElementById('dynamicBufferToggleBtn');
         dynamicBufferToggleBtn.addEventListener('click', () => {
             const next = !this.downloadAreaManager.isDynamicBufferEnabled();
@@ -113,9 +125,8 @@ class PointGPSApp {
 
             dynamicBufferToggleBtn.classList.toggle('active', next);
             dynamicBufferToggleBtn.setAttribute('aria-pressed', String(next));
-            dynamicBufferToggleBtn.textContent = next ? '動的バッファ解除' : '動的バッファ適用';
 
-            this.showMessage(next ? '動的バッファを適用しました' : '動的バッファを解除しました');
+            this.showMessage(next ? '動的バッファ削減を適用しました' : '動的バッファ削減を解除しました');
         });
 
         // ダウンロード領域の指定ファイル出力ボタン
