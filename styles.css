@@ -447,6 +447,15 @@ body {
     background-color: #d35400;
 }
 
+/* ポイント出力(Excel)ボタンは青（読み込みボタンと同色） */
+#exportPointsExcelBtn {
+    background-color: #3498db;
+}
+
+#exportPointsExcelBtn:hover {
+    background-color: #2980b9;
+}
+
 /* チュートリアルボタン */
 .tutorial-button {
     width: 36px;

@@ -156,15 +156,16 @@ class PointGPSApp {
         // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
-        exportDownloadAreaBtn.addEventListener('click', () => {
+        exportDownloadAreaBtn.addEventListener('click', async () => {
             try {
-                const result = this.downloadAreaManager.exportFiles();
+                const result = await this.downloadAreaManager.exportFiles();
                 if (result.success) {
+                    const folderInfo = result.folderName ? `\n保存先フォルダ: ${result.folderName}` : '';
                     this.showMessage(
-                        `tile_buffers.geojson と tile_manifest.json を出力しました\n` +
+                        `tile_buffers.geojson と tile_manifest.json を出力しました${folderInfo}\n` +
                         `対象: ${result.pointCount}ポイント / z17:${result.z17Count}枚 / z18:${result.z18Count}枚`
                     );
-                } else {
+                } else if (result.error !== 'キャンセル') {
                     this.showError(result.error);
                 }
             } catch (error) {
