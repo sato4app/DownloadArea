@@ -113,6 +113,7 @@ class PointGPSApp {
 
             clusterMergeToggleBtn.classList.toggle('active', next);
             clusterMergeToggleBtn.setAttribute('aria-pressed', String(next));
+            clusterMergeToggleBtn.textContent = next ? 'クラスタ統合解除' : 'クラスタ統合';
 
             this.showMessage(next ? 'クラスタ統合を適用しました' : 'クラスタ統合を解除しました');
         });
@@ -125,6 +126,7 @@ class PointGPSApp {
 
             dynamicBufferToggleBtn.classList.toggle('active', next);
             dynamicBufferToggleBtn.setAttribute('aria-pressed', String(next));
+            dynamicBufferToggleBtn.textContent = next ? '動的バッファ解除' : '動的バッファ削減';
 
             this.showMessage(next ? '動的バッファ削減を適用しました' : '動的バッファ削減を解除しました');
         });
