@@ -113,14 +113,14 @@ export const CONFIG = {
         color: '#1d4ed8',       // 青(枠線)
         weight: 1,
         fillColor: '#3b82f6',   // 青(塗り)
-        fillOpacity: 0.05,
+        fillOpacity: 0.02,
         interactive: false
     },
     BUFFER_CIRCLE_Z18_STYLE: {
         color: '#16a34a',       // 緑(枠線)
         weight: 1,
         fillColor: '#22c55e',   // 緑(塗り)
-        fillOpacity: 0.10,
+        fillOpacity: 0.05,
         interactive: false
     },
 
