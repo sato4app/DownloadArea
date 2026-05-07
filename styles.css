@@ -431,6 +431,10 @@ body {
     align-items: flex-start;
 }
 
+.export-control-row + .export-control-row {
+    margin-top: 12px;
+}
+
 .export-buttons .control-button {
     width: 100%;
     margin-bottom: 0;
