@@ -160,6 +160,20 @@ body {
     text-align: right;
 }
 
+/* ポイント数の内訳（追加・除外） */
+#pointBreakdownField {
+    flex: 1;
+    min-width: 0;
+    margin-left: 4px;
+    padding: 4px 6px;
+    border: 1px solid #d5dbdb;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    font-size: 11px;
+    text-align: center;
+}
+
 #pointIdField {
     width: 60px;
     flex: none;

@@ -96,13 +96,13 @@ export const CONFIG = {
         COVERAGE_THRESHOLD: 0.05,        // 5%
         COVERAGE_SAMPLE_GRID: 10,        // 10×10 = 100 サンプル/タイル
 
-        // 動的バッファ（案C）
+        // 動的バッファ
         // 各ポイントのバッファ半径を「最近接ポイントまでの距離」に応じて自動的に縮小する。
         DYNAMIC_BUFFER_ENABLED: true,    // 一括 ON/OFF（false で従来動作）
         SHRINK_FACTOR: 0.6,              // 最近接距離 × この係数まで縮める
         RADIUS_FLOOR_M: 50,              // 半径の最小値（m）
 
-        // クラスタ統合（案A）
+        // クラスタ統合
         // 近接ポイントをクラスタとしてまとめ、重心を中心とした単一の円で代表させる。
         // クラスタ内の重複円・重複タイルを構造的に削減する。
         CLUSTER_DISTANCE_M: 200          // ペア距離がこの値以下なら同じクラスタ（推移的に併合）

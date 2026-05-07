@@ -359,10 +359,17 @@ export class PointManager {
         document.getElementById('categoryField').value = '';
     }
 
-    // ポイント数表示を更新
+    // ポイント数表示を更新（合計と「追加・除外」内訳）
     updatePointCountDisplay() {
-        const count = this.gpsDataManager.getPointCount();
-        document.getElementById('pointCountField').value = count;
+        const points = this.gpsDataManager.getAllPoints();
+        document.getElementById('pointCountField').value = points.length;
+
+        const breakdownField = document.getElementById('pointBreakdownField');
+        if (breakdownField) {
+            const added = points.filter(p => p.category === CONFIG.CATEGORIES.ADDED).length;
+            const excluded = points.filter(p => p.category === CONFIG.CATEGORIES.EXCLUDED).length;
+            breakdownField.value = `(追加:${added}個、除外:${excluded}個)`;
+        }
     }
 
     // 選択されたポイントの情報を更新
@@ -391,6 +398,9 @@ export class PointManager {
 
         // 区分の変更でDownload領域の対象集合が変わるため通知
         this.notifyPointsChanged();
+
+        // 区分変更で「追加・除外」内訳も変わるので再計算
+        this.updatePointCountDisplay();
     }
 
     // DMS座標を「東経・北緯」順でE/N付きでフォーマット
