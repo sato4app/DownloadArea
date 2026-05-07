@@ -269,27 +269,33 @@ body {
 }
 
 .tile-stats-header .tile-stats-label {
-    width: 38px;
+    width: 60px;
 }
 
 .tile-stats-header .tile-stats-count-label {
     width: 60px;
     text-align: right;
+    margin-left: auto;
+    margin-right: 44px; /* データ行の「(gap+枚+gap+MB)」分を補完して右揃えを揃える */
 }
 
 .tile-stats-header .tile-stats-size-label {
     width: 60px;
     text-align: right;
-    margin-left: auto;
-    padding-right: 24px;
+    padding-right: 22px;
 }
 
 .tile-stats-label {
     font-size: 12px;
     font-weight: 500;
     color: #34495e;
-    width: 38px;
+    width: 60px;
     flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.tile-stats-row input.tile-stats-count {
+    margin-left: auto;
 }
 
 .tile-stats-row input.tile-stats-count,
