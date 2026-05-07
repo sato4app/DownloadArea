@@ -35,6 +35,12 @@ class PointGPSApp {
             this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager);
             this.pointManager.onPointsChanged = () => this.downloadAreaManager.updateCircles();
 
+            // 出力ファイル名表示をconfigから流し込む
+            const geojsonFilenameEl = document.getElementById('exportGeoJsonFilename');
+            const manifestFilenameEl = document.getElementById('exportManifestFilename');
+            if (geojsonFilenameEl) geojsonFilenameEl.textContent = CONFIG.DOWNLOAD_AREA.GEOJSON_FILENAME;
+            if (manifestFilenameEl) manifestFilenameEl.textContent = CONFIG.DOWNLOAD_AREA.MANIFEST_FILENAME;
+
             // イベントハンドラー設定
             this.setupEventHandlers();
             

@@ -197,11 +197,15 @@
                 <div class="export-control-row">
                     <button id="exportDownloadAreaBtn"
                             type="button"
-                            title="ダウンロード領域の指定ファイルを出力"
+                            title="ダウンロード領域の指定ファイルを出力（フォルダを選択してOKで保存）"
                             class="control-button">
                         Download領域の指定ファイルを出力
                     </button>
                 </div>
+                <ul class="export-file-list" aria-label="出力されるファイル">
+                    <li id="exportGeoJsonFilename"></li>
+                    <li id="exportManifestFilename"></li>
+                </ul>
             </div>
         </section>
     </aside>
