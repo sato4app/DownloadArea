@@ -15,8 +15,8 @@ export const CONFIG = {
     // 区分別マーカー色
     POINT_MARKER_COLORS: {
         GPS: '#008000',       // 緑（ポイントGPS）
-        ADDED: '#3b82f6',     // 青（追加ポイント）
-        EXCLUDED: '#800000'   // maroon(#800000)（領域の算出から除外） 灰色(#9ca3af)
+        ADDED: '#0000ff',     // 青（追加ポイント）
+        EXCLUDED: '#800000'   // maroon（領域の算出から除外） 灰色(#9ca3af)
     },
     POINT_MARKER_WEIGHT: 2,
     POINT_MARKER_OPACITY: 1,
