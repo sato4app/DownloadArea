@@ -279,16 +279,18 @@ export class DownloadAreaManager {
     }
 
     // 円のポリゴン近似（[lng, lat] の配列、最後の点で閉じる）
+    // 出力GeoJSONのGPS値は小数点以下5桁に丸める。
     circlePolygon(lat, lng, radiusM, vertices = DA.CIRCLE_VERTICES) {
         const coords = [];
         const latRad = lat * Math.PI / 180;
+        const round5 = (v) => Math.round(v * 1e5) / 1e5;
         for (let i = 0; i < vertices; i++) {
             const angle = (i / vertices) * 2 * Math.PI;
             const dx = radiusM * Math.cos(angle);
             const dy = radiusM * Math.sin(angle);
             const dLat = (dy / DA.EARTH_RADIUS_M) * 180 / Math.PI;
             const dLng = (dx / (DA.EARTH_RADIUS_M * Math.cos(latRad))) * 180 / Math.PI;
-            coords.push([lng + dLng, lat + dLat]);
+            coords.push([round5(lng + dLng), round5(lat + dLat)]);
         }
         coords.push(coords[0]);
         return coords;
