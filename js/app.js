@@ -113,7 +113,7 @@ class PointGPSApp {
 
             toggleAreaDisplayBtn.classList.toggle('active', next);
             toggleAreaDisplayBtn.setAttribute('aria-pressed', String(next));
-            toggleAreaDisplayBtn.textContent = next ? '領域を非表示' : '領域を表示';
+            toggleAreaDisplayBtn.textContent = next ? '領域非表示' : '領域表示';
 
             this.showMessage(next ? 'ダウンロード領域を表示しました' : 'ダウンロード領域を非表示にしました');
         });
