@@ -1,0 +1,793 @@
+/* PointGPS スタイルシート */
+
+/* リセットとベース設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+/* 地図コンテナ */
+#map {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 1;
+}
+
+/* アクセシビリティ - スクリーンリーダー用の隠しテキスト */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* オーバーレイコントロールパネル */
+.overlay-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 320px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* エディターパネル */
+.editor-panel {
+    padding: 20px;
+}
+
+.editor-panel h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #3498db;
+}
+
+/* コントロールボタン */
+.control-button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.control-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.control-button:active {
+    transform: translateY(0);
+}
+
+/* データ読み込みボタン */
+.import-buttons {
+    margin-bottom: 12px;
+}
+
+.import-control-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.import-button {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 8px 12px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.import-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.import-button:active {
+    transform: translateY(0);
+}
+
+/* 「領域を表示」ボタン: 切替ボタンとして地味な配色（OFF状態） */
+.area-display-btn {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
+}
+
+.area-display-btn:hover {
+    background-color: #dfe6e9;
+    color: #2c3e50;
+    box-shadow: 0 2px 8px rgba(149, 165, 166, 0.3);
+}
+
+.area-display-btn.active {
+    background-color: #16a34a;
+    color: #ffffff;
+    border-color: #15803d;
+}
+
+.area-display-btn.active:hover {
+    background-color: #15803d;
+    color: #ffffff;
+}
+
+
+/* 情報フィールドコンテナ */
+.info-field-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+}
+
+.info-field-container label {
+    font-weight: 500;
+    color: #34495e;
+    min-width: 60px;
+    font-size: 13px;
+}
+
+.info-field-container input[type="text"] {
+    padding: 6px 8px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 13px;
+    background-color: #ecf0f1;
+}
+
+/* 特定フィールドの幅設定 */
+#pointCountField {
+    width: 48px;
+    flex: none;
+    text-align: right;
+}
+
+/* ポイント数の内訳（追加・除外） */
+#pointBreakdownField {
+    flex: 1;
+    min-width: 0;
+    margin-left: 4px;
+    padding: 4px 6px;
+    border: 1px solid #d5dbdb;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    font-size: 11px;
+    text-align: center;
+}
+
+#pointIdField {
+    width: 60px;
+    flex: none;
+}
+
+#elevationField {
+    width: 60px;
+    flex: none;
+    text-align: right;
+}
+
+#latDecimalField,
+#lngDecimalField {
+    width: 80px;
+    flex: none;
+    text-align: right;
+}
+
+#dmsField {
+    text-align: center;
+}
+
+.unit-label {
+    font-size: 12px;
+    color: #7f8c8d;
+    white-space: nowrap;
+}
+
+/* トップレベルのモード切替ラジオボタン */
+.panel-mode-switch {
+    display: flex;
+    gap: 6px;
+    margin: 12px 0;
+    padding: 8px;
+    background-color: rgba(236, 240, 241, 0.6);
+    border: 1px solid #d5dbdb;
+    border-radius: 6px;
+}
+
+.panel-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #2c3e50;
+    cursor: pointer;
+}
+
+.panel-mode-option input[type="radio"] {
+    cursor: pointer;
+}
+
+/* モード別パネル（hidden 属性で表示切替） */
+.panel-mode-section[hidden] {
+    display: none;
+}
+
+/* バッファ半径の設定（スライドバー） */
+.buffer-radius-control {
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    background-color: rgba(236, 240, 241, 0.6);
+    border: 1px solid #d5dbdb;
+    border-radius: 6px;
+}
+
+.buffer-radius-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.buffer-radius-row + .buffer-radius-row {
+    margin-top: 6px;
+}
+
+.buffer-radius-row label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #2c3e50;
+    white-space: nowrap;
+    min-width: 54px;
+}
+
+.buffer-radius-row input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.buffer-radius-row input.buffer-radius-value {
+    width: 52px;
+    flex: none;
+    padding: 3px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: right;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: #ffffff;
+}
+
+/* ズーム別タイルグリッド表示の選択 */
+.tile-grid-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.tile-grid-control label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #2c3e50;
+    white-space: nowrap;
+}
+
+.tile-grid-control select {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 12px;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+/* 地図上のタイルグリッド枚数ラベル */
+.tile-grid-label span {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ズーム別タイル統計 */
+.tile-stats-container {
+    margin-top: 12px;
+    padding: 8px 10px;
+    background-color: rgba(236, 240, 241, 0.6);
+    border: 1px solid #d5dbdb;
+    border-radius: 6px;
+}
+
+.tile-stats-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 3px;
+}
+
+.tile-stats-row:last-child {
+    margin-bottom: 0;
+}
+
+.tile-stats-header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7f8c8d;
+    border-bottom: 1px solid #d5dbdb;
+    padding-bottom: 3px;
+    margin-bottom: 5px;
+}
+
+.tile-stats-header .tile-stats-label {
+    width: 60px;
+}
+
+.tile-stats-header .tile-stats-count-label {
+    text-align: right;
+    margin-left: auto;
+    margin-right: 30px; /* データ行の「枚」ラベル＋gap分を補完して右揃えを揃える */
+    white-space: nowrap;
+}
+
+.tile-stats-header .tile-stats-size-label {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tile-stats-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #34495e;
+    width: 60px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* タイルサイズ実測ボタン（サイズ列タイトルの右） */
+.measure-size-btn {
+    margin-left: 6px;
+    padding: 2px 8px;
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.measure-size-btn:hover:not(:disabled) {
+    background-color: #dfe6e9;
+    border-color: #95a5a6;
+}
+
+.measure-size-btn:disabled {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.tile-stats-row input.tile-stats-count {
+    margin-left: auto;
+}
+
+.tile-stats-row input.tile-stats-count,
+.tile-stats-row input.tile-stats-size {
+    width: 60px;
+    padding: 3px 5px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+    font-size: 11px;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    text-align: right;
+    flex: none;
+}
+
+.tile-stats-row .unit-label {
+    font-size: 11px;
+    width: 18px;
+}
+
+.tile-stats-total {
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px solid #bdc3c7;
+    font-weight: 600;
+}
+
+.tile-stats-total .tile-stats-label {
+    color: #2c3e50;
+}
+
+.tile-stats-total input.tile-stats-count,
+.tile-stats-total input.tile-stats-size {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* ポイント情報コンテナ */
+.point-info-container {
+    margin-top: 20px;
+    padding: 16px;
+    background-color: rgba(236, 240, 241, 0.8);
+    border-radius: 6px;
+    border: 1px solid #d5dbdb;
+}
+
+.point-info-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+/* 情報フィールド行 */
+.info-field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.info-field-row label {
+    font-weight: 500;
+    color: #34495e;
+    min-width: 40px;
+    font-size: 12px;
+}
+
+.info-field-row input[type="text"] {
+    flex: 1;
+    padding: 5px 7px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+    font-size: 12px;
+    min-width: 0;
+}
+
+.info-field-row select {
+    flex: 1;
+    padding: 5px 7px;
+    border: 1px solid #bdc3c7;
+    border-radius: 3px;
+    font-size: 12px;
+    min-width: 0;
+    background-color: #fff;
+}
+
+.info-field-row input[readonly] {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+/* ポイント操作ボタン */
+.point-action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: space-between;
+}
+
+.point-action-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.point-action-btn:hover {
+    background-color: #219a52;
+    transform: translateY(-1px);
+}
+
+.point-action-btn:active {
+    transform: translateY(0);
+}
+
+/* 出力ボタン */
+.export-buttons {
+    margin-top: 20px;
+}
+
+.export-control-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.export-control-row + .export-control-row {
+    margin-top: 12px;
+}
+
+.export-buttons .control-button {
+    width: 100%;
+    margin-bottom: 0;
+    background-color: #e67e22;
+    flex-shrink: 0;
+    padding: 8px 16px;
+}
+
+.export-buttons .control-button:hover {
+    background-color: #d35400;
+}
+
+/* ポイント出力(Excel)ボタンは青（読み込みボタンと同色） */
+#exportPointsExcelBtn {
+    background-color: #3498db;
+}
+
+#exportPointsExcelBtn:hover {
+    background-color: #2980b9;
+}
+
+
+/* チュートリアルボタン */
+.tutorial-button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background-color: #d5dbdb;
+    color: #7f8c8d;
+    border: 1px solid #bdc3c7;
+    border-radius: 50%;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.tutorial-button:hover {
+    background-color: #bdc3c7;
+    color: #2c3e50;
+    transform: scale(1.1);
+}
+
+.tutorial-button:active {
+    transform: scale(0.95);
+}
+
+
+/* メッセージエリア */
+.message-area {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 16px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    z-index: 10000;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.message-info {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.message-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .overlay-controls {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+    
+    .editor-panel {
+        padding: 16px;
+    }
+    
+    .point-action-buttons {
+        flex-direction: column;
+    }
+    
+    .point-action-btn {
+        margin-bottom: 8px;
+    }
+    
+    .export-buttons {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .overlay-controls {
+        top: 5px;
+        right: 5px;
+        left: 5px;
+    }
+    
+    .editor-panel {
+        padding: 12px;
+    }
+    
+    .info-field-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .info-field-row label {
+        min-width: auto;
+        margin-bottom: 4px;
+    }
+}
+
+/* カスタムカーソル */
+body.crosshair-cursor {
+    cursor: crosshair;
+}
+
+body.move-cursor {
+    cursor: move;
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-area {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Leaflet カスタマイズ */
+.leaflet-popup-content-wrapper {
+    border-radius: 6px;
+}
+
+.leaflet-popup-content {
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* フォーカススタイル（アクセシビリティ向上） */
+button:focus,
+input:focus,
+select:focus {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}
+
+/* ローディング状態の表示 */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #3498db;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Leafletコントロールのカスタマイズ */
+/* ズームコントロールをスケールの上に配置 */
+.leaflet-control-zoom {
+    margin-bottom: 10px !important;
+}
+
+.leaflet-control-scale {
+    margin-bottom: 10px !important;
+}
+
+/* ズームコントロールのスタイリング */
+.leaflet-control-zoom a {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    color: #333 !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+.leaflet-control-zoom a:hover {
+    background-color: #f4f4f4 !important;
+}
+
+/* スケールコントロールのスタイリング */
+.leaflet-control-scale-line {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border: 1px solid #777 !important;
+    color: #333 !important;
+    font-size: 11px !important;
+}
