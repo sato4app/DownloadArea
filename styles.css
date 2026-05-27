@@ -259,6 +259,7 @@ body {
 
 /* バッファ半径の設定（スライドバー） */
 .buffer-radius-control {
+    margin-top: 16px;
     margin-bottom: 12px;
     padding: 8px 10px;
     background-color: rgba(236, 240, 241, 0.6);
@@ -316,6 +317,7 @@ body {
     font-weight: 500;
     color: #2c3e50;
     white-space: nowrap;
+    margin-right: 12px;
 }
 
 .tile-grid-control select {
