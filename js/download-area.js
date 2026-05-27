@@ -422,7 +422,7 @@ export class DownloadAreaManager {
     // tile_buffers.geojson を生成
     // z=14/15/16/17 は同じ z17 バッファ半径を共有するため、ジオメトリは同一だが
     // レイヤごとに個別の Feature を出力してマニフェストと対応を取る。
-    generateTileBuffersGeoJSON() {
+    generateTileBuffersGeoJSON(version = null) {
         const points = this.getEffectivePoints();
         const features = [];
         const z17SharedLayers = [
@@ -456,7 +456,7 @@ export class DownloadAreaManager {
         return {
             type: 'FeatureCollection',
             metadata: {
-                version: this.todayVersionString(),
+                version: version || this.todayVersionString(),
                 z14_layer: { buffer_m_max: this.bufferR17, max_zoom: DA.Z14, min_zoom: DA.Z14 },
                 z15_layer: { buffer_m_max: this.bufferR17, max_zoom: DA.Z15, min_zoom: DA.Z15 },
                 z16_layer: { buffer_m_max: this.bufferR17, max_zoom: DA.Z16, min_zoom: DA.Z16 },
@@ -571,7 +571,7 @@ export class DownloadAreaManager {
     }
 
     // tile_manifest.json を生成
-    generateTileManifest() {
+    generateTileManifest(version = null) {
         const points = this.getEffectivePoints();
         const z14Set = new Set();
         const z15Set = new Set();
@@ -611,7 +611,7 @@ export class DownloadAreaManager {
             .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
 
         return {
-            version: this.todayVersionString(),
+            version: version || this.todayVersionString(),
             source: DA.MANIFEST_SOURCE,
             layers: {
                 [DA.LAYER_KEY_Z14]: {
@@ -649,14 +649,15 @@ export class DownloadAreaManager {
     }
 
     // 2つのファイルを出力
-    exportFiles() {
+    exportFiles(version = null) {
         const points = this.getEligiblePoints();
         if (points.length === 0 && this.routeWaypoints.length === 0) {
             return { success: false, error: CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY };
         }
 
-        const geojson = this.generateTileBuffersGeoJSON();
-        const manifest = this.generateTileManifest();
+        const v = version || this.todayVersionString();
+        const geojson = this.generateTileBuffersGeoJSON(v);
+        const manifest = this.generateTileManifest(v);
 
         this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
         this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
