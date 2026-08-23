@@ -6,9 +6,10 @@ import { CONFIG } from './config.js';
 const DA = CONFIG.DOWNLOAD_AREA;
 
 export class DownloadAreaManager {
-    constructor(mapManager, gpsDataManager) {
+    constructor(mapManager, gpsDataManager, fileHandler) {
         this.mapManager = mapManager;
         this.gpsDataManager = gpsDataManager;
+        this.fileHandler = fileHandler;
         this.bufferLayer = L.layerGroup().addTo(this.mapManager.getMap());
         // ズーム別の対象タイル矩形を描くレイヤー（円バッファとは独立）。
         this.tileGridLayer = L.layerGroup().addTo(this.mapManager.getMap());
@@ -653,8 +654,8 @@ export class DownloadAreaManager {
         };
     }
 
-    // 2つのファイルを出力
-    exportFiles() {
+    // 2つのファイルを、利用者が選んだフォルダへ出力する
+    async exportFiles() {
         const points = this.getEligiblePoints();
         if (points.length === 0 && this.routeWaypoints.length === 0) {
             return { success: false, error: CONFIG.MESSAGES.DOWNLOAD_AREA_EMPTY };
@@ -663,11 +664,19 @@ export class DownloadAreaManager {
         const geojson = this.generateTileBuffersGeoJSON();
         const manifest = this.generateTileManifest();
 
-        this.downloadJSON(geojson, DA.GEOJSON_FILENAME);
-        this.downloadJSON(manifest, DA.MANIFEST_FILENAME);
+        // 2ファイルは対で使うため、同じフォルダへまとめて保存する
+        const saveResult = await this.fileHandler.saveJsonFilesWithUserChoice([
+            { filename: DA.GEOJSON_FILENAME, content: JSON.stringify(geojson) },
+            { filename: DA.MANIFEST_FILENAME, content: JSON.stringify(manifest) }
+        ]);
+
+        if (!saveResult.success) {
+            return { success: false, error: saveResult.error };
+        }
 
         return {
             success: true,
+            directoryName: saveResult.directoryName,
             pointCount: points.length,
             z14Count: manifest.layers[DA.LAYER_KEY_Z14].tile_count,
             z15Count: manifest.layers[DA.LAYER_KEY_Z15].tile_count,
@@ -675,17 +684,5 @@ export class DownloadAreaManager {
             z17Count: manifest.layers[DA.LAYER_KEY_Z17].tile_count,
             z18Count: manifest.layers[DA.LAYER_KEY_Z18].tile_count
         };
-    }
-
-    downloadJSON(obj, filename) {
-        const blob = new Blob([JSON.stringify(obj)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
     }
 }

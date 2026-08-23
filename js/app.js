@@ -32,7 +32,7 @@ class PointGPSApp {
             this.pointManager.setAppInstance(this);
 
             // Download領域管理初期化（円描画とファイル出力）
-            this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager);
+            this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager, this.fileHandler);
             this.pointManager.onPointsChanged = () => this.downloadAreaManager.updateCircles();
 
             // イベントハンドラー設定
@@ -272,17 +272,19 @@ class PointGPSApp {
         // ダウンロード領域の指定ファイル出力ボタン
         const exportDownloadAreaBtn = document.getElementById('exportDownloadAreaBtn');
 
-        exportDownloadAreaBtn.addEventListener('click', () => {
+        exportDownloadAreaBtn.addEventListener('click', async () => {
             try {
-                const result = this.downloadAreaManager.exportFiles();
+                const result = await this.downloadAreaManager.exportFiles();
                 if (result.success) {
+                    // フォルダを選んで保存した場合はフォルダ名も知らせる
+                    const location = result.directoryName ? `フォルダ「${result.directoryName}」へ ` : '';
                     this.showMessage(
-                        `tile_buffers.geojson と tile_manifest.json を出力しました\n` +
+                        `${location}tile_buffers.geojson と tile_manifest.json を出力しました\n` +
                         `対象: ${result.pointCount}ポイント / ` +
                         `z14:${result.z14Count}枚 / z15:${result.z15Count}枚 / z16:${result.z16Count}枚 / ` +
                         `z17:${result.z17Count}枚 / z18:${result.z18Count}枚`
                     );
-                } else {
+                } else if (result.error !== 'キャンセル') {
                     this.showError(result.error);
                 }
             } catch (error) {

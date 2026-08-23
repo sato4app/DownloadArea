@@ -7,6 +7,8 @@ export class FileHandler {
     constructor() {
         this.currentFileHandle = null;
         this.currentFileName = '';
+        // 前回選択した出力先フォルダ。次回のフォルダ選択の開始位置に使う。
+        this.currentDirectoryHandle = null;
     }
 
     /**
@@ -214,5 +216,99 @@ export class FileHandler {
                 return { success: false, error: error.message };
             }
         }
+    }
+
+    /**
+     * 複数のJSONファイルを、利用者が選んだフォルダへまとめて保存する
+     *
+     * 2ファイルを同じ場所へ出すため、ファイルごとの保存ダイアログではなく
+     * フォルダを1回選ばせる方式にする。
+     * File System Access API 非対応ブラウザでは従来のダウンロードにする。
+     *
+     * @param {Array<{filename: string, content: string}>} files - 保存するファイル
+     * @returns {Promise<{success: boolean, directoryName?: string, error?: string}>} 保存結果
+     */
+    async saveJsonFilesWithUserChoice(files) {
+        // 非対応ブラウザ（Firefox/Safari など）はダウンロードフォルダへ出す
+        if (!('showDirectoryPicker' in window)) {
+            files.forEach(f => this.downloadJSON(f.content, f.filename));
+            return { success: true };
+        }
+
+        try {
+            const pickerOptions = { mode: 'readwrite' };
+            if (this.currentDirectoryHandle) {
+                pickerOptions.startIn = this.currentDirectoryHandle;
+            }
+
+            const directoryHandle = await window.showDirectoryPicker(pickerOptions);
+
+            // 既存ファイルはまとめて上書き確認する（出力は繰り返し行うため）
+            const existingNames = [];
+            for (const f of files) {
+                if (await this.fileExistsInDirectory(directoryHandle, f.filename)) {
+                    existingNames.push(f.filename);
+                }
+            }
+            if (existingNames.length > 0) {
+                const ok = confirm(
+                    `フォルダ「${directoryHandle.name}」には次のファイルが既にあります。\n` +
+                    `${existingNames.join('\n')}\n\n` +
+                    '上書きしてもよろしいですか？'
+                );
+                if (!ok) {
+                    return { success: false, error: 'キャンセル' };
+                }
+            }
+
+            for (const f of files) {
+                const fileHandle = await directoryHandle.getFileHandle(f.filename, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(f.content);
+                await writable.close();
+            }
+
+            // 次回の開始位置として保持する
+            this.currentDirectoryHandle = directoryHandle;
+
+            return { success: true, directoryName: directoryHandle.name };
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return { success: false, error: 'キャンセル' };
+            }
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * フォルダ内に指定名のファイルがあるかを判定
+     * @param {FileSystemDirectoryHandle} directoryHandle - フォルダ
+     * @param {string} filename - ファイル名
+     * @returns {Promise<boolean>} 存在するかどうか
+     */
+    async fileExistsInDirectory(directoryHandle, filename) {
+        try {
+            await directoryHandle.getFileHandle(filename);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * JSON文字列をファイルとしてダウンロード（フォルダ指定なしのフォールバック）
+     * @param {string} content - JSON文字列
+     * @param {string} filename - ファイル名
+     */
+    downloadJSON(content, filename) {
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
