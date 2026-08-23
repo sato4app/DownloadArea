@@ -664,19 +664,23 @@ export class DownloadAreaManager {
         const geojson = this.generateTileBuffersGeoJSON();
         const manifest = this.generateTileManifest();
 
-        // 2ファイルは対で使うため、同じフォルダへまとめて保存する
+        // 2ファイルは対で使うため、続けて保存する（2つ目は1つ目と同じフォルダが開く）
         const saveResult = await this.fileHandler.saveJsonFilesWithUserChoice([
             { filename: DA.GEOJSON_FILENAME, content: JSON.stringify(geojson) },
             { filename: DA.MANIFEST_FILENAME, content: JSON.stringify(manifest) }
         ]);
 
         if (!saveResult.success) {
-            return { success: false, error: saveResult.error };
+            return {
+                success: false,
+                error: saveResult.error,
+                savedFilenames: saveResult.savedFilenames
+            };
         }
 
         return {
             success: true,
-            directoryName: saveResult.directoryName,
+            filenames: saveResult.filenames,
             pointCount: points.length,
             z14Count: manifest.layers[DA.LAYER_KEY_Z14].tile_count,
             z15Count: manifest.layers[DA.LAYER_KEY_Z15].tile_count,

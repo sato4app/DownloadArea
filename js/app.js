@@ -276,15 +276,25 @@ class PointGPSApp {
             try {
                 const result = await this.downloadAreaManager.exportFiles();
                 if (result.success) {
-                    // フォルダを選んで保存した場合はフォルダ名も知らせる
-                    const location = result.directoryName ? `フォルダ「${result.directoryName}」へ ` : '';
+                    // 保存ダイアログで名前を変えられるため、実際に保存した名前を表示する
+                    const names = (result.filenames && result.filenames.length > 0)
+                        ? result.filenames.join(' と ')
+                        : 'tile_buffers.geojson と tile_manifest.json';
                     this.showMessage(
-                        `${location}tile_buffers.geojson と tile_manifest.json を出力しました\n` +
+                        `${names} を出力しました\n` +
                         `対象: ${result.pointCount}ポイント / ` +
                         `z14:${result.z14Count}枚 / z15:${result.z15Count}枚 / z16:${result.z16Count}枚 / ` +
                         `z17:${result.z17Count}枚 / z18:${result.z18Count}枚`
                     );
-                } else if (result.error !== 'キャンセル') {
+                } else if (result.error === 'キャンセル') {
+                    // 片方だけ保存済みの状態は分かりにくいため、その旨を知らせる
+                    if (result.savedFilenames && result.savedFilenames.length > 0) {
+                        this.showMessage(
+                            `${result.savedFilenames.join('、')} のみ出力しました。残りは出力していません`,
+                            'warning'
+                        );
+                    }
+                } else {
                     this.showError(result.error);
                 }
             } catch (error) {

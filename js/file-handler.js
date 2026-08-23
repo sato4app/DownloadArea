@@ -7,8 +7,8 @@ export class FileHandler {
     constructor() {
         this.currentFileHandle = null;
         this.currentFileName = '';
-        // 前回選択した出力先フォルダ。次回のフォルダ選択の開始位置に使う。
-        this.currentDirectoryHandle = null;
+        // 前回JSONを保存したファイル。次回の保存ダイアログの開始位置に使う。
+        this.lastJsonFileHandle = null;
     }
 
     /**
@@ -219,79 +219,61 @@ export class FileHandler {
     }
 
     /**
-     * 複数のJSONファイルを、利用者が選んだフォルダへまとめて保存する
+     * 複数のJSONファイルを、利用者が保存先を選んで保存する
      *
-     * 2ファイルを同じ場所へ出すため、ファイルごとの保存ダイアログではなく
-     * フォルダを1回選ばせる方式にする。
+     * ファイルごとに保存ダイアログ(showSaveFilePicker)を開く。
+     * フォルダ選択(showDirectoryPicker)は「フォルダ内のファイルの表示と編集」の
+     * 許可を求める確認が出るため使わない。保存ダイアログなら、その1ファイルを
+     * 書き込む許可だけで済む。
+     * 2つ目以降は1つ目の保存先が開くので、同じフォルダへ続けて保存できる。
      * File System Access API 非対応ブラウザでは従来のダウンロードにする。
      *
      * @param {Array<{filename: string, content: string}>} files - 保存するファイル
-     * @returns {Promise<{success: boolean, directoryName?: string, error?: string}>} 保存結果
+     * @returns {Promise<{success: boolean, filenames?: string[], savedFilenames?: string[], error?: string}>} 保存結果
      */
     async saveJsonFilesWithUserChoice(files) {
         // 非対応ブラウザ（Firefox/Safari など）はダウンロードフォルダへ出す
-        if (!('showDirectoryPicker' in window)) {
+        if (!('showSaveFilePicker' in window)) {
             files.forEach(f => this.downloadJSON(f.content, f.filename));
             return { success: true };
         }
 
+        // 保存済みのファイル名。途中で取りやめた場合に、どこまで出力したかを返す。
+        const savedFilenames = [];
+        // 次のダイアログを開く場所。直前に保存したファイルと同じフォルダを開く。
+        let startInHandle = this.lastJsonFileHandle;
+
         try {
-            const pickerOptions = { mode: 'readwrite' };
-            if (this.currentDirectoryHandle) {
-                pickerOptions.startIn = this.currentDirectoryHandle;
-            }
-
-            const directoryHandle = await window.showDirectoryPicker(pickerOptions);
-
-            // 既存ファイルはまとめて上書き確認する（出力は繰り返し行うため）
-            const existingNames = [];
             for (const f of files) {
-                if (await this.fileExistsInDirectory(directoryHandle, f.filename)) {
-                    existingNames.push(f.filename);
+                const savePickerOptions = {
+                    suggestedName: f.filename,
+                    types: [{
+                        description: 'JSON Files',
+                        accept: { 'application/json': ['.json', '.geojson'] }
+                    }]
+                };
+                if (startInHandle) {
+                    savePickerOptions.startIn = startInHandle;
                 }
-            }
-            if (existingNames.length > 0) {
-                const ok = confirm(
-                    `フォルダ「${directoryHandle.name}」には次のファイルが既にあります。\n` +
-                    `${existingNames.join('\n')}\n\n` +
-                    '上書きしてもよろしいですか？'
-                );
-                if (!ok) {
-                    return { success: false, error: 'キャンセル' };
-                }
-            }
 
-            for (const f of files) {
-                const fileHandle = await directoryHandle.getFileHandle(f.filename, { create: true });
+                const fileHandle = await window.showSaveFilePicker(savePickerOptions);
                 const writable = await fileHandle.createWritable();
                 await writable.write(f.content);
                 await writable.close();
+
+                savedFilenames.push(fileHandle.name);
+                startInHandle = fileHandle;
             }
 
-            // 次回の開始位置として保持する
-            this.currentDirectoryHandle = directoryHandle;
+            // 次回の出力も同じフォルダから始められるよう保持する
+            this.lastJsonFileHandle = startInHandle;
 
-            return { success: true, directoryName: directoryHandle.name };
+            return { success: true, filenames: savedFilenames };
         } catch (error) {
             if (error.name === 'AbortError') {
-                return { success: false, error: 'キャンセル' };
+                return { success: false, error: 'キャンセル', savedFilenames };
             }
-            return { success: false, error: error.message };
-        }
-    }
-
-    /**
-     * フォルダ内に指定名のファイルがあるかを判定
-     * @param {FileSystemDirectoryHandle} directoryHandle - フォルダ
-     * @param {string} filename - ファイル名
-     * @returns {Promise<boolean>} 存在するかどうか
-     */
-    async fileExistsInDirectory(directoryHandle, filename) {
-        try {
-            await directoryHandle.getFileHandle(filename);
-            return true;
-        } catch {
-            return false;
+            return { success: false, error: error.message, savedFilenames };
         }
     }
 
