@@ -35,12 +35,6 @@ class PointGPSApp {
             this.downloadAreaManager = new DownloadAreaManager(this.mapManager, this.gpsDataManager);
             this.pointManager.onPointsChanged = () => this.downloadAreaManager.updateCircles();
 
-            // 地図タイルバージョンの初期値（出力年月 yyyy-mm）を設定
-            const mapTileVersionField = document.getElementById('mapTileVersionField');
-            if (mapTileVersionField) {
-                mapTileVersionField.value = this.downloadAreaManager.todayVersionString();
-            }
-
             // イベントハンドラー設定
             this.setupEventHandlers();
             
@@ -280,9 +274,7 @@ class PointGPSApp {
 
         exportDownloadAreaBtn.addEventListener('click', () => {
             try {
-                const versionField = document.getElementById('mapTileVersionField');
-                const version = versionField ? versionField.value.trim() : '';
-                const result = this.downloadAreaManager.exportFiles(version || null);
+                const result = this.downloadAreaManager.exportFiles();
                 if (result.success) {
                     this.showMessage(
                         `tile_buffers.geojson と tile_manifest.json を出力しました\n` +
