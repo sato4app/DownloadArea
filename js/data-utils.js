@@ -181,6 +181,17 @@ export class DataUtils {
     }
 
     /**
+     * 文字列をテキストとして持つ要素を作成する（HTMLとして解釈させないため）
+     * @param {string} text - 表示する文字列
+     * @returns {HTMLSpanElement} テキストノードを持つspan要素
+     */
+    static createTextElement(text) {
+        const span = document.createElement('span');
+        span.textContent = String(text);
+        return span;
+    }
+
+    /**
      * テンプレート文字列をパラメータで置換
      * @param {string} template - テンプレート文字列（例: 'ポイント {id} を追加しました'）
      * @param {Object} params - 置換パラメータ（例: {id: 'A-01'}）

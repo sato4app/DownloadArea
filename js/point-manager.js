@@ -146,7 +146,7 @@ export class PointManager {
         this.markers.set(point.id, marker);
         
         // ツールチップ表示
-        marker.bindTooltip(point.id, {
+        marker.bindTooltip(DataUtils.createTextElement(point.id), {
             permanent: false,
             direction: 'top',
             offset: CONFIG.POINT_TOOLTIP_OFFSET
@@ -404,7 +404,7 @@ export class PointManager {
             this.selectedPointId = updates.id;
 
             // ツールチップを更新
-            marker.setTooltipContent(updates.id);
+            marker.setTooltipContent(DataUtils.createTextElement(updates.id));
         }
 
         // 区分の変更でDownload領域の対象集合が変わるため通知
